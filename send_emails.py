@@ -36,18 +36,24 @@ DIR           = Path(__file__).parent
 CONTACTS_FILE = DIR / "contacts.csv"
 TEMPLATE_FILE = DIR / "email_template.txt"
 
-DEFAULT_SUBJECT = "Quick question for {first_name}"
+DEFAULT_SUBJECT = "Quick thought on {company_name}"
 
 DEFAULT_BODY = """\
 Hi {first_name},
 
-I came across {company_name} and wanted to reach out directly.
+In your role at {company_name}, you're likely navigating the same pressures we \
+hear consistently from senior leaders across the region — HR systems that don't \
+scale cleanly, talent decisions made without the right data, and capability gaps \
+that create drag across the business.
 
-I run Future Edge Consulting — we help businesses leverage AI and smart \
-systems to grow faster and reduce overhead. I think there could be a \
-genuinely useful fit with what you're doing at {company_name}.
+Future Edge Consulting works with organisations across the GCC and South Asia on \
+exactly these areas: talent and psychometric frameworks that bring rigour to people \
+decisions, ERP implementation that removes the friction holding operations back, and \
+capability development programmes that actually change how teams perform.
 
-Would you be open to a 15-minute call this week? Happy to work around your schedule.
+Our work tends to land best with organisations that have outgrown their current \
+approach and are ready to build something more deliberate. If any of this connects \
+to what's on your plate, I'd welcome a brief conversation.
 
 Best,
 {sender_name}
@@ -57,10 +63,17 @@ mohsin.bhatti@futureedge-consulting.com"""
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def load_template() -> str:
+def load_template() -> tuple[str, str]:
+    """Returns (subject_template, body_template)."""
     if TEMPLATE_FILE.exists():
-        return TEMPLATE_FILE.read_text().strip()
-    return DEFAULT_BODY
+        text = TEMPLATE_FILE.read_text().strip()
+        lines = text.splitlines()
+        if lines and lines[0].lower().startswith("subject:"):
+            subject = lines[0].split(":", 1)[1].strip()
+            body = "\n".join(lines[2:]).strip()  # skip subject line + blank line
+            return subject, body
+        return DEFAULT_SUBJECT, text
+    return DEFAULT_SUBJECT, DEFAULT_BODY
 
 
 def render(template: str, contact: dict) -> str:
@@ -113,7 +126,7 @@ def main():
     if not EMAIL_PASS and not args.dry_run:
         raise SystemExit("❌  EMAIL_PASSWORD environment variable not set.")
 
-    body_template = load_template()
+    subject_template, body_template = load_template()
     contacts      = load_contacts()
 
     # Find unsent contacts
@@ -163,7 +176,7 @@ def main():
                 contact["sent_at"] = "DUPLICATE"
                 continue
 
-            subject = render(DEFAULT_SUBJECT, contact)
+            subject = render(subject_template, contact)
             body    = render(body_template, contact)
 
             if args.dry_run:

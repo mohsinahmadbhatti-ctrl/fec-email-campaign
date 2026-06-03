@@ -1,12 +1,16 @@
+Subject: Quick thought on {company_name}
+
 Hi {first_name},
 
-I came across {company_name} and wanted to reach out directly.
+In your role at {company_name}, you're likely navigating the same pressures we hear consistently from senior leaders across the region — HR systems that don't scale cleanly, talent decisions made without the right data, and capability gaps that create drag across the business.
 
-I run Future Edge Consulting — we help businesses leverage AI and smart systems to grow faster and reduce overhead. Based on what you're doing at {company_name}, I think there could be a genuinely useful fit.
+Future Edge Consulting works with organisations across the GCC and South Asia on exactly these areas: talent and psychometric frameworks that bring rigour to people decisions, ERP implementation that removes the friction holding operations back, and capability development programmes that actually change how teams perform.
 
-Would you be open to a 15-minute call this week? Happy to work around your schedule.
+Our work tends to land best with organisations that have outgrown their current approach and are ready to build something more deliberate. If any of this connects to what's on your plate, I'd welcome a brief conversation.
 
-Best,
-{sender_name}
-Future Edge Consulting
-mohsin.bhatti@futureedge-consulting.com
+Mohsin Ahmad Bhatti
+Founder & Director | Future Edge Consulting Pvt Ltd
+P: +92 307 2202237   M: +44 746 3987384
+E: mohsin.bhatti@futureedge-consulting.com
+W: www.futureedge-consulting.com
+A: 7th Floor, Executive Tower, Dolmen Mall, Clifton, Karachi, Pakistan
