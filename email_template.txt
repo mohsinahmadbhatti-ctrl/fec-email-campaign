@@ -1,0 +1,12 @@
+Hi {first_name},
+
+I came across {company_name} and wanted to reach out directly.
+
+I run Future Edge Consulting — we help businesses leverage AI and smart systems to grow faster and reduce overhead. Based on what you're doing at {company_name}, I think there could be a genuinely useful fit.
+
+Would you be open to a 15-minute call this week? Happy to work around your schedule.
+
+Best,
+{sender_name}
+Future Edge Consulting
+mohsin.bhatti@futureedge-consulting.com

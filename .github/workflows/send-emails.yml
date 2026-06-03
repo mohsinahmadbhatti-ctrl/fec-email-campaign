@@ -1,0 +1,43 @@
+name: Send Emails (10 every 4 hours)
+
+on:
+  schedule:
+    - cron: '0 */4 * * *'   # Runs at 00:00, 04:00, 08:00, 12:00, 16:00, 20:00 UTC
+  workflow_dispatch:          # Also lets you trigger manually from GitHub UI
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write         # Needed to commit the updated contacts.csv back
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Send emails
+        env:
+          SMTP_HOST:      mail.futureedge-consulting.com
+          SMTP_PORT:      "587"
+          FROM_EMAIL:     mohsin.bhatti@futureedge-consulting.com
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          SENDER_NAME:    Mohsin
+          BATCH_SIZE:     "10"
+        run: |
+          cd email-sender
+          python send_emails.py
+
+      - name: Commit updated contacts.csv
+        run: |
+          git config user.name  "Lead Bot"
+          git config user.email "bot@futureedge-consulting.com"
+          git add email-sender/contacts.csv
+          git diff --staged --quiet || git commit -m "Mark sent contacts [$(date -u '+%Y-%m-%d %H:%M UTC')]"
+          git push
