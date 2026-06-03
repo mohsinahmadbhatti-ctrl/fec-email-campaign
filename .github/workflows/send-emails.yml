@@ -26,6 +26,8 @@ jobs:
         env:
           SMTP_HOST:      mail.futureedge-consulting.com
           SMTP_PORT:      "587"
+          IMAP_HOST:      mail.futureedge-consulting.com
+          IMAP_PORT:      "993"
           FROM_EMAIL:     mohsin.bhatti@futureedge-consulting.com
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           SENDER_NAME:    Mohsin
