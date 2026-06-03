@@ -31,13 +31,12 @@ jobs:
           SENDER_NAME:    Mohsin
           BATCH_SIZE:     "10"
         run: |
-          cd email-sender
           python send_emails.py
 
       - name: Commit updated contacts.csv
         run: |
           git config user.name  "Lead Bot"
           git config user.email "bot@futureedge-consulting.com"
-          git add email-sender/contacts.csv
+          git add contacts.csv
           git diff --staged --quiet || git commit -m "Mark sent contacts [$(date -u '+%Y-%m-%d %H:%M UTC')]"
           git push
