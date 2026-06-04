@@ -29,12 +29,91 @@ def thousands_filter(value):
         return value
 
 
+def _parse_legacy_template():
+    """Parse email_template.txt → (subject, html_body)."""
+    tmpl_path = os.path.join(os.path.dirname(__file__), 'email_template.txt')
+    if not os.path.exists(tmpl_path):
+        return None, None
+    with open(tmpl_path, encoding='utf-8') as f:
+        content = f.read()
+    subject = ''
+    body_lines = []
+    in_body = False
+    for line in content.splitlines():
+        if line.startswith('Subject:') and not in_body:
+            subject = line[8:].strip()
+        elif line.strip() == '' and subject and not in_body:
+            in_body = True
+        elif in_body:
+            body_lines.append(line)
+    body_text = '\n'.join(body_lines).strip()
+    # Build a nice HTML body preserving blank-line paragraphs
+    paragraphs = []
+    current = []
+    for line in body_lines:
+        if line.strip() == '':
+            if current:
+                paragraphs.append('<br>'.join(current))
+                current = []
+        else:
+            current.append(line)
+    if current:
+        paragraphs.append('<br>'.join(current))
+    html_body = '\n'.join(f'<p>{p}</p>' for p in paragraphs if p)
+    return subject, html_body
+
+
 def init_db():
     db.create_all()
-    # Seed default providers if not present
-    for name, limit in [('brevo', 300), ('mailjet', 200)]:
-        if not Provider.query.filter_by(name=name).first():
-            db.session.add(Provider(name=name, daily_limit=limit))
+
+    # ── Seed Brevo (disabled until user adds key) ─────────────────────────────
+    if not Provider.query.filter_by(name='brevo').first():
+        brevo_key = os.getenv('BREVO_API_KEY', '')
+        db.session.add(Provider(
+            name='brevo',
+            daily_limit=300,
+            api_key=brevo_key,
+            enabled=bool(brevo_key),
+        ))
+
+    # ── Auto-import contacts.csv on very first run ─────────────────────────────
+    if Contact.query.count() == 0:
+        csv_path = os.path.join(os.path.dirname(__file__), 'contacts.csv')
+        if os.path.exists(csv_path):
+            lst = ContactList(name='FEC Prospects (All)', description='Auto-imported from contacts.csv')
+            db.session.add(lst)
+            db.session.flush()
+            added = 0
+            with open(csv_path, encoding='utf-8-sig', errors='replace') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    email = row.get('email', '').strip().lower()
+                    if not email or '@' not in email:
+                        continue
+                    c = Contact(
+                        email=email,
+                        first_name=row.get('first_name', '').strip(),
+                        last_name=row.get('last_name', '').strip(),
+                        company=row.get('company', '').strip(),
+                        title=row.get('title', '').strip(),
+                    )
+                    c.lists.append(lst)
+                    db.session.add(c)
+                    added += 1
+            print(f'[init] Auto-imported {added} contacts from contacts.csv')
+
+    # ── Auto-import email_template.txt on very first run ──────────────────────
+    if EmailTemplate.query.count() == 0:
+        subject, html_body = _parse_legacy_template()
+        if subject:
+            t = EmailTemplate(
+                name='FEC Outreach',
+                subject=subject,
+                body_html=html_body,
+            )
+            db.session.add(t)
+            print(f'[init] Auto-imported email template: "{subject}"')
+
     db.session.commit()
 
 
@@ -48,15 +127,14 @@ def dashboard():
     total_sent = CampaignSend.query.filter_by(status='sent').count()
 
     today = date.today()
-    providers = Provider.query.all()
-    for p in providers:
-        if p.reset_date != today:
-            p.sends_today = 0
-            p.reset_date = today
-    db.session.commit()
+    brevo = Provider.query.filter_by(name='brevo').first()
+    if brevo and brevo.reset_date != today:
+        brevo.sends_today = 0
+        brevo.reset_date = today
+        db.session.commit()
 
-    today_sent = sum(p.sends_today for p in providers)
-    today_capacity = sum(p.daily_limit for p in providers if p.enabled)
+    today_sent = brevo.sends_today if brevo else 0
+    today_capacity = brevo.daily_limit if (brevo and brevo.enabled) else 0
     recent_campaigns = Campaign.query.order_by(Campaign.created_at.desc()).limit(5).all()
 
     return render_template('dashboard.html',
@@ -66,7 +144,7 @@ def dashboard():
         total_sent=total_sent,
         today_sent=today_sent,
         today_capacity=today_capacity,
-        providers=providers,
+        brevo=brevo,
         recent_campaigns=recent_campaigns,
     )
 
@@ -378,10 +456,10 @@ def campaign_detail(campaign_id):
 def send_batch(campaign_id):
     """Send one batch immediately (up to daily_limit_remaining contacts)."""
     campaign = Campaign.query.get_or_404(campaign_id)
-    providers = Provider.query.filter_by(enabled=True).order_by(Provider.daily_limit.desc()).all()
+    providers = Provider.query.filter_by(name='brevo', enabled=True).all()
 
     if not providers:
-        flash('No email providers configured. Go to Settings first.', 'danger')
+        flash('Brevo not configured. Go to Settings and add your API key.', 'danger')
         return redirect(url_for('campaign_detail', campaign_id=campaign_id))
 
     total_remaining_today = sum(p.remaining_today() for p in providers)
@@ -481,53 +559,40 @@ def export_sends(campaign_id):
 
 @app.route('/settings', methods=['GET', 'POST'])
 def settings():
-    providers = {p.name: p for p in Provider.query.all()}
+    p = Provider.query.filter_by(name='brevo').first()
+    if not p:
+        p = Provider(name='brevo', daily_limit=300)
+        db.session.add(p)
+        db.session.commit()
     if request.method == 'POST':
-        for name in ['brevo', 'mailjet']:
-            p = providers.get(name)
-            if not p:
-                p = Provider(name=name)
-                db.session.add(p)
-            p.api_key = request.form.get(f'{name}_api_key', '').strip()
-            if name == 'mailjet':
-                p.api_secret = request.form.get('mailjet_api_secret', '').strip()
-            p.daily_limit = int(request.form.get(f'{name}_daily_limit', p.daily_limit))
-            p.enabled = f'{name}_enabled' in request.form
+        p.api_key = request.form.get('brevo_api_key', '').strip()
+        p.daily_limit = int(request.form.get('brevo_daily_limit', 300))
+        p.enabled = 'brevo_enabled' in request.form
         db.session.commit()
         flash('Settings saved.', 'success')
         return redirect(url_for('settings'))
+    return render_template('settings.html', provider=p)
 
-    return render_template('settings.html', providers=providers)
 
-
-@app.route('/settings/test-provider/<name>', methods=['POST'])
-def test_provider(name):
-    p = Provider.query.filter_by(name=name).first()
-    if not p or not p.enabled or not p.api_key:
-        return jsonify({'ok': False, 'msg': 'Provider not configured or disabled.'})
+@app.route('/settings/test-provider/brevo', methods=['POST'])
+def test_provider():
+    p = Provider.query.filter_by(name='brevo').first()
+    if not p or not p.api_key:
+        return jsonify({'ok': False, 'msg': 'No API key saved yet.'})
     try:
-        if name == 'brevo':
-            resp = requests.get(
-                'https://api.brevo.com/v3/account',
-                headers={'api-key': p.api_key},
-                timeout=10,
-            )
-            if resp.status_code == 200:
-                info = resp.json()
-                return jsonify({'ok': True, 'msg': f"Connected as {info.get('email', 'unknown')}"})
-            return jsonify({'ok': False, 'msg': f"HTTP {resp.status_code}: {resp.text[:200]}"})
-        elif name == 'mailjet':
-            resp = requests.get(
-                'https://api.mailjet.com/v3/REST/apikey',
-                auth=(p.api_key, p.api_secret),
-                timeout=10,
-            )
-            if resp.status_code == 200:
-                return jsonify({'ok': True, 'msg': 'Mailjet connected successfully.'})
-            return jsonify({'ok': False, 'msg': f"HTTP {resp.status_code}: {resp.text[:200]}"})
+        resp = requests.get(
+            'https://api.brevo.com/v3/account',
+            headers={'api-key': p.api_key},
+            timeout=10,
+        )
+        if resp.status_code == 200:
+            info = resp.json()
+            plan = info.get('plan', [{}])
+            credits = plan[0].get('credits', '?') if plan else '?'
+            return jsonify({'ok': True, 'msg': f"Connected as {info.get('email', 'unknown')} · {credits} credits remaining"})
+        return jsonify({'ok': False, 'msg': f"HTTP {resp.status_code}: {resp.text[:200]}"})
     except Exception as e:
         return jsonify({'ok': False, 'msg': str(e)})
-    return jsonify({'ok': False, 'msg': 'Unknown provider.'})
 
 
 if __name__ == '__main__':

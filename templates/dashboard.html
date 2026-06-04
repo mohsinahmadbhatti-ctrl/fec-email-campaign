@@ -40,33 +40,32 @@
   <div class="col-md-6">
     <div class="card border-0 shadow-sm h-100">
       <div class="card-header bg-transparent fw-semibold">
-        <i class="bi bi-graph-up-arrow me-2 text-primary"></i>Daily Send Quota
+        <i class="bi bi-graph-up-arrow me-2 text-primary"></i>Daily Send Quota — Brevo
       </div>
       <div class="card-body">
-        {% for p in providers %}
-        <div class="mb-3">
-          <div class="d-flex justify-content-between mb-1">
-            <span class="fw-semibold text-capitalize">{{ p.name }}</span>
-            <span class="text-muted small">
-              {% if p.enabled %}
-                {{ p.sends_today }} / {{ p.daily_limit }} used
-              {% else %}
-                <span class="badge bg-secondary">Disabled</span>
-              {% endif %}
-            </span>
-          </div>
-          {% if p.enabled %}
-          <div class="progress" style="height:10px">
-            <div class="progress-bar {% if p.sends_today >= p.daily_limit %}bg-danger{% elif p.sends_today > p.daily_limit * 0.8 %}bg-warning{% else %}bg-success{% endif %}"
-                 style="width: {{ [(p.sends_today / p.daily_limit * 100)|int, 100]|min }}%"></div>
-          </div>
-          {% endif %}
+        {% if brevo and brevo.enabled and brevo.api_key %}
+        <div class="d-flex justify-content-between mb-1">
+          <span class="fw-semibold">Brevo <span class="badge bg-success ms-1">Active</span></span>
+          <span class="text-muted small">{{ today_sent }} / {{ today_capacity }} used</span>
         </div>
-        {% endfor %}
-        <div class="mt-3 p-2 bg-light rounded d-flex justify-content-between align-items-center">
-          <span><i class="bi bi-envelope me-1"></i>Sent today</span>
-          <span class="fw-bold fs-5">{{ today_sent }} / {{ today_capacity }}</span>
+        <div class="progress mb-3" style="height:12px">
+          {% set pct = [(today_sent / today_capacity * 100)|int, 100]|min if today_capacity else 0 %}
+          <div class="progress-bar {% if pct >= 100 %}bg-danger{% elif pct > 80 %}bg-warning{% else %}bg-success{% endif %}"
+               style="width:{{ pct }}%"></div>
         </div>
+        <div class="p-2 bg-light rounded d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-envelope me-1"></i>Remaining today</span>
+          <span class="fw-bold fs-5 text-success">{{ today_capacity - today_sent }}</span>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+          <i class="bi bi-exclamation-circle display-5 text-warning d-block mb-2"></i>
+          <p class="mb-2">Brevo not configured yet.</p>
+          <a href="{{ url_for('settings') }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-gear me-1"></i>Add API Key (2 min)
+          </a>
+        </div>
+        {% endif %}
       </div>
     </div>
   </div>
@@ -91,11 +90,11 @@
         <a href="{{ url_for('create_campaign') }}" class="btn btn-primary">
           <i class="bi bi-send-plus me-2"></i>Create Campaign
         </a>
-        {% if not providers or not providers|selectattr('enabled')|list %}
+        {% if not brevo or not brevo.enabled or not brevo.api_key %}
         <div class="alert alert-warning mb-0 p-2 small">
           <i class="bi bi-exclamation-triangle me-1"></i>
-          <strong>Setup needed:</strong>
-          <a href="{{ url_for('settings') }}">Configure your free email providers</a> to start sending.
+          <strong>One step left:</strong>
+          <a href="{{ url_for('settings') }}">Add your Brevo API key</a> — free, no credit card.
         </div>
         {% endif %}
       </div>
