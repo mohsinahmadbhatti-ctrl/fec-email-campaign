@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if template else 'Create' }} Template — FEC Email Portal{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0">
+    <i class="bi bi-file-earmark-richtext me-2 text-primary"></i>
+    {{ 'Edit Template' if template else 'New Email Template' }}
+  </h4>
+  <a href="{{ url_for('templates') }}" class="btn btn-outline-secondary btn-sm">Cancel</a>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <form method="post" id="templateForm">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Template Name <span class="text-danger">*</span></label>
+            <input type="text" name="name" class="form-control" required
+                   value="{{ template.name if template else '' }}"
+                   placeholder="e.g. FEC Outreach v1">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Subject Line <span class="text-danger">*</span></label>
+            <input type="text" name="subject" class="form-control" required
+                   value="{{ template.subject if template else '' }}"
+                   placeholder="e.g. Quick thought on {company_name}">
+            <div class="form-text">Use <code>{first_name}</code>, <code>{last_name}</code>, <code>{company_name}</code>, <code>{title}</code> as placeholders.</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Email Body (HTML) <span class="text-danger">*</span></label>
+            <div class="btn-group btn-group-sm mb-2" role="group">
+              <button type="button" class="btn btn-outline-secondary" onclick="insertTag('<b>', '</b>')"><b>B</b></button>
+              <button type="button" class="btn btn-outline-secondary" onclick="insertTag('<i>', '</i>')"><i>I</i></button>
+              <button type="button" class="btn btn-outline-secondary" onclick="insertTag('<br>', '')">BR</button>
+              <button type="button" class="btn btn-outline-secondary" onclick="insertTag('<p>', '</p>')">P</button>
+              <button type="button" class="btn btn-outline-secondary" onclick="insertPlaceholder('{first_name}')">{first_name}</button>
+              <button type="button" class="btn btn-outline-secondary" onclick="insertPlaceholder('{company_name}')">{company_name}</button>
+              <button type="button" class="btn btn-outline-secondary" onclick="insertPlaceholder('{title}')">{title}</button>
+            </div>
+            <textarea name="body_html" id="bodyEditor" class="form-control font-monospace" rows="18" required
+                      style="font-size:13px">{{ template.body_html if template else default_body }}</textarea>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-grow-1">
+              <i class="bi bi-save me-1"></i>Save Template
+            </button>
+            <button type="button" class="btn btn-outline-info" onclick="previewTemplate()">
+              <i class="bi bi-eye me-1"></i>Preview
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-transparent fw-semibold">Available Placeholders</div>
+      <div class="card-body">
+        <table class="table table-sm small">
+          <tbody>
+            <tr><td><code>{first_name}</code></td><td class="text-muted">Contact's first name</td></tr>
+            <tr><td><code>{last_name}</code></td><td class="text-muted">Contact's last name</td></tr>
+            <tr><td><code>{full_name}</code></td><td class="text-muted">Full name</td></tr>
+            <tr><td><code>{company_name}</code></td><td class="text-muted">Company name</td></tr>
+            <tr><td><code>{company}</code></td><td class="text-muted">Same as above</td></tr>
+            <tr><td><code>{title}</code></td><td class="text-muted">Job title</td></tr>
+            <tr><td><code>{email}</code></td><td class="text-muted">Their email</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mt-3" id="previewCard" style="display:none">
+      <div class="card-header bg-transparent fw-semibold">Preview</div>
+      <div class="card-body" id="previewBody" style="font-size:13px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal for full preview -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Email Preview</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="previewModalBody"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function insertTag(open, close) {
+  const ta = document.getElementById('bodyEditor');
+  const start = ta.selectionStart, end = ta.selectionEnd;
+  const sel = ta.value.substring(start, end);
+  ta.value = ta.value.substring(0, start) + open + sel + close + ta.value.substring(end);
+  ta.focus();
+}
+function insertPlaceholder(ph) {
+  const ta = document.getElementById('bodyEditor');
+  const start = ta.selectionStart;
+  ta.value = ta.value.substring(0, start) + ph + ta.value.substring(start);
+  ta.selectionStart = ta.selectionEnd = start + ph.length;
+  ta.focus();
+}
+function previewTemplate() {
+  const body = document.getElementById('bodyEditor').value;
+  const preview = body
+    .replace(/\{first_name\}/g, 'John')
+    .replace(/\{last_name\}/g, 'Doe')
+    .replace(/\{full_name\}/g, 'John Doe')
+    .replace(/\{company_name\}/g, 'Acme Corp')
+    .replace(/\{company\}/g, 'Acme Corp')
+    .replace(/\{title\}/g, 'HR Manager')
+    .replace(/\{email\}/g, 'john@acme.com');
+  document.getElementById('previewModalBody').innerHTML = preview;
+  new bootstrap.Modal(document.getElementById('previewModal')).show();
+}
+</script>
+{% endblock %}

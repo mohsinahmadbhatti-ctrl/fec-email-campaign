@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}{{ campaign.name }} — FEC Email Portal{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h4 class="mb-0">{{ campaign.name }}</h4>
+    <span class="badge bg-{{ {'draft':'secondary','sending':'primary','paused':'warning','completed':'success'}.get(campaign.status,'secondary') }} mt-1">
+      {{ campaign.status }}
+    </span>
+  </div>
+  <a href="{{ url_for('campaigns') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>All Campaigns
+  </a>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-sm-3">
+    <div class="card border-0 shadow-sm text-center h-100">
+      <div class="card-body">
+        <div class="display-6 fw-bold text-success">{{ campaign.sent_count() }}</div>
+        <div class="text-muted small">Sent</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-3">
+    <div class="card border-0 shadow-sm text-center h-100">
+      <div class="card-body">
+        <div class="display-6 fw-bold text-warning">{{ campaign.pending_count() }}</div>
+        <div class="text-muted small">Pending</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-3">
+    <div class="card border-0 shadow-sm text-center h-100">
+      <div class="card-body">
+        <div class="display-6 fw-bold text-danger">{{ campaign.failed_count() }}</div>
+        <div class="text-muted small">Failed</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-3">
+    <div class="card border-0 shadow-sm text-center h-100">
+      <div class="card-body">
+        <div class="display-6 fw-bold text-primary">{{ campaign.progress_pct() }}%</div>
+        <div class="text-muted small">Complete</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-body">
+    <div class="progress mb-2" style="height:12px">
+      <div class="progress-bar bg-success" style="width:{{ campaign.progress_pct() }}%"></div>
+    </div>
+    <div class="row g-2 small text-muted">
+      <div class="col"><strong>From:</strong> {{ campaign.from_name }} &lt;{{ campaign.from_email }}&gt;</div>
+      <div class="col"><strong>List:</strong> {{ campaign.contact_list.name if campaign.contact_list else '—' }} ({{ campaign.contact_list.count() if campaign.contact_list else 0 }} contacts)</div>
+      <div class="col"><strong>Template:</strong> {{ campaign.template.name if campaign.template else '—' }}</div>
+      <div class="col"><strong>Daily Limit:</strong> {{ campaign.daily_limit }}</div>
+    </div>
+  </div>
+</div>
+
+{% if campaign.status != 'completed' %}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-body">
+    <h6 class="fw-semibold mb-3"><i class="bi bi-play-fill me-1 text-success"></i>Send Batch Now</h6>
+    <form action="{{ url_for('send_batch', campaign_id=campaign.id) }}" method="post" class="d-flex gap-2 align-items-end" onsubmit="return confirmSend(this)">
+      <div>
+        <label class="form-label small fw-semibold mb-1">Batch Size</label>
+        <input type="number" name="batch_size" class="form-control form-control-sm" value="50" min="1" max="500" style="width:100px">
+      </div>
+      <button type="submit" class="btn btn-success">
+        <i class="bi bi-send me-1"></i>Send Batch
+      </button>
+      <form action="{{ url_for('pause_campaign', campaign_id=campaign.id) }}" method="post" class="d-inline">
+        <button type="submit" class="btn btn-outline-warning">
+          {% if campaign.status == 'sending' %}
+            <i class="bi bi-pause-fill me-1"></i>Pause
+          {% else %}
+            <i class="bi bi-play-fill me-1"></i>Resume
+          {% endif %}
+        </button>
+      </form>
+    </form>
+    <p class="text-muted small mt-2 mb-0">
+      <i class="bi bi-info-circle me-1"></i>
+      Emails will be sent through your configured free providers (Brevo + Mailjet).
+      You can run multiple batches throughout the day up to the daily limit.
+    </p>
+  </div>
+</div>
+{% endif %}
+
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <h6 class="mb-0 fw-semibold">Recent Send Log (last 100)</h6>
+  <a href="{{ url_for('export_sends', campaign_id=campaign.id) }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-download me-1"></i>Export CSV
+  </a>
+</div>
+
+<div class="card border-0 shadow-sm">
+  {% if sends %}
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Email</th>
+          <th>Name</th>
+          <th>Company</th>
+          <th>Status</th>
+          <th>Provider</th>
+          <th>Sent At</th>
+          <th>Error</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in sends %}
+        <tr>
+          <td class="font-monospace small">{{ s.contact.email }}</td>
+          <td class="small">{{ s.contact.full_name() }}</td>
+          <td class="small text-muted">{{ s.contact.company }}</td>
+          <td>
+            <span class="badge bg-{{ {'sent':'success','failed':'danger','skipped':'warning','pending':'secondary'}.get(s.status,'secondary') }}">
+              {{ s.status }}
+            </span>
+          </td>
+          <td class="small text-muted">{{ s.provider or '—' }}</td>
+          <td class="small text-muted">{{ s.sent_at.strftime('%d %b %H:%M') if s.sent_at else '—' }}</td>
+          <td class="small text-danger">{{ s.error_msg[:60] if s.error_msg else '' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body text-center text-muted py-4">
+    No sends yet. Click <strong>Send Batch</strong> to start.
+  </div>
+  {% endif %}
+</div>
+
+<div class="mt-3 text-end">
+  <form action="{{ url_for('delete_campaign', campaign_id=campaign.id) }}" method="post"
+        onsubmit="return confirm('Delete this campaign and all send records?')">
+    <button type="submit" class="btn btn-sm btn-outline-danger">
+      <i class="bi bi-trash me-1"></i>Delete Campaign
+    </button>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function confirmSend(form) {
+  const batch = form.querySelector('[name=batch_size]').value;
+  return confirm(`Send up to ${batch} emails now? Make sure your providers are configured.`);
+}
+</script>
+{% endblock %}

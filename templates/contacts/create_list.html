@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Create List — FEC Email Portal{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-5">
+    <h4 class="mb-4"><i class="bi bi-plus-lg me-2 text-primary"></i>Create Contact List</h4>
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">List Name <span class="text-danger">*</span></label>
+            <input type="text" name="name" class="form-control" required placeholder="e.g. UAE HR Managers">
+          </div>
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Description</label>
+            <textarea name="description" class="form-control" rows="2" placeholder="Optional notes about this list"></textarea>
+          </div>
+          <div class="d-flex gap-2">
+            <a href="{{ url_for('contact_lists') }}" class="btn btn-outline-secondary flex-grow-1">Cancel</a>
+            <button type="submit" class="btn btn-primary flex-grow-1">Create List</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

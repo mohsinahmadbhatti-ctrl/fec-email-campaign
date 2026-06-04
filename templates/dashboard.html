@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — FEC Email Portal{% endblock %}
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm text-center h-100">
+      <div class="card-body">
+        <div class="display-6 fw-bold text-primary">{{ total_contacts|thousands }}</div>
+        <div class="text-muted small">Total Contacts</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm text-center h-100">
+      <div class="card-body">
+        <div class="display-6 fw-bold text-success">{{ total_sent|thousands }}</div>
+        <div class="text-muted small">Emails Sent</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm text-center h-100">
+      <div class="card-body">
+        <div class="display-6 fw-bold text-info">{{ total_campaigns }}</div>
+        <div class="text-muted small">Campaigns</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm text-center h-100">
+      <div class="card-body">
+        <div class="display-6 fw-bold text-warning">{{ total_lists }}</div>
+        <div class="text-muted small">Contact Lists</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-transparent fw-semibold">
+        <i class="bi bi-graph-up-arrow me-2 text-primary"></i>Daily Send Quota
+      </div>
+      <div class="card-body">
+        {% for p in providers %}
+        <div class="mb-3">
+          <div class="d-flex justify-content-between mb-1">
+            <span class="fw-semibold text-capitalize">{{ p.name }}</span>
+            <span class="text-muted small">
+              {% if p.enabled %}
+                {{ p.sends_today }} / {{ p.daily_limit }} used
+              {% else %}
+                <span class="badge bg-secondary">Disabled</span>
+              {% endif %}
+            </span>
+          </div>
+          {% if p.enabled %}
+          <div class="progress" style="height:10px">
+            <div class="progress-bar {% if p.sends_today >= p.daily_limit %}bg-danger{% elif p.sends_today > p.daily_limit * 0.8 %}bg-warning{% else %}bg-success{% endif %}"
+                 style="width: {{ [(p.sends_today / p.daily_limit * 100)|int, 100]|min }}%"></div>
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+        <div class="mt-3 p-2 bg-light rounded d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-envelope me-1"></i>Sent today</span>
+          <span class="fw-bold fs-5">{{ today_sent }} / {{ today_capacity }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-transparent fw-semibold">
+        <i class="bi bi-rocket-takeoff me-2 text-primary"></i>Quick Actions
+      </div>
+      <div class="card-body d-grid gap-2">
+        <a href="{{ url_for('import_contacts') }}" class="btn btn-outline-primary">
+          <i class="bi bi-upload me-2"></i>Import Contacts from CSV
+        </a>
+        <form action="{{ url_for('import_legacy_csv') }}" method="post">
+          <button type="submit" class="btn btn-outline-secondary w-100">
+            <i class="bi bi-file-earmark-arrow-up me-2"></i>Import Legacy contacts.csv
+          </button>
+        </form>
+        <a href="{{ url_for('create_template') }}" class="btn btn-outline-success">
+          <i class="bi bi-file-plus me-2"></i>Create Email Template
+        </a>
+        <a href="{{ url_for('create_campaign') }}" class="btn btn-primary">
+          <i class="bi bi-send-plus me-2"></i>Create Campaign
+        </a>
+        {% if not providers or not providers|selectattr('enabled')|list %}
+        <div class="alert alert-warning mb-0 p-2 small">
+          <i class="bi bi-exclamation-triangle me-1"></i>
+          <strong>Setup needed:</strong>
+          <a href="{{ url_for('settings') }}">Configure your free email providers</a> to start sending.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-transparent fw-semibold">
+    <i class="bi bi-clock-history me-2 text-primary"></i>Recent Campaigns
+  </div>
+  {% if recent_campaigns %}
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Campaign</th>
+          <th>Status</th>
+          <th>Sent</th>
+          <th>Progress</th>
+          <th>Created</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in recent_campaigns %}
+        <tr>
+          <td class="fw-semibold">{{ c.name }}</td>
+          <td>
+            <span class="badge bg-{{ {'draft':'secondary','sending':'primary','paused':'warning','completed':'success'}.get(c.status,'secondary') }}">
+              {{ c.status }}
+            </span>
+          </td>
+          <td>{{ c.sent_count() }}</td>
+          <td style="min-width:120px">
+            <div class="progress" style="height:8px">
+              <div class="progress-bar bg-success" style="width:{{ c.progress_pct() }}%"></div>
+            </div>
+            <small class="text-muted">{{ c.progress_pct() }}%</small>
+          </td>
+          <td class="text-muted small">{{ c.created_at.strftime('%d %b %Y') }}</td>
+          <td><a href="{{ url_for('campaign_detail', campaign_id=c.id) }}" class="btn btn-sm btn-outline-primary">View</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body text-center text-muted py-5">
+    <i class="bi bi-send display-4 d-block mb-3 opacity-25"></i>
+    No campaigns yet. <a href="{{ url_for('create_campaign') }}">Create your first campaign</a>.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

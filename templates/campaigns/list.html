@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Campaigns — FEC Email Portal{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0"><i class="bi bi-send me-2 text-primary"></i>Campaigns</h4>
+  <a href="{{ url_for('create_campaign') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-plus-lg me-1"></i>New Campaign
+  </a>
+</div>
+
+{% if campaigns %}
+<div class="card border-0 shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Campaign</th>
+          <th>From</th>
+          <th>List</th>
+          <th>Status</th>
+          <th>Sent</th>
+          <th>Progress</th>
+          <th>Created</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in campaigns %}
+        <tr>
+          <td class="fw-semibold">{{ c.name }}</td>
+          <td class="small text-muted">{{ c.from_email }}</td>
+          <td class="small">{{ c.contact_list.name if c.contact_list else '—' }}</td>
+          <td>
+            <span class="badge bg-{{ {'draft':'secondary','sending':'primary','paused':'warning','completed':'success'}.get(c.status,'secondary') }}">
+              {{ c.status }}
+            </span>
+          </td>
+          <td>{{ c.sent_count() }} / {{ c.contact_list.count() if c.contact_list else 0 }}</td>
+          <td style="min-width:100px">
+            <div class="progress" style="height:8px">
+              <div class="progress-bar bg-success" style="width:{{ c.progress_pct() }}%"></div>
+            </div>
+            <small class="text-muted">{{ c.progress_pct() }}%</small>
+          </td>
+          <td class="text-muted small">{{ c.created_at.strftime('%d %b %Y') }}</td>
+          <td>
+            <a href="{{ url_for('campaign_detail', campaign_id=c.id) }}" class="btn btn-sm btn-outline-primary">View</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="card border-0 shadow-sm">
+  <div class="card-body text-center py-5 text-muted">
+    <i class="bi bi-send display-4 d-block mb-3 opacity-25"></i>
+    No campaigns yet. <a href="{{ url_for('create_campaign') }}">Create your first campaign</a>.
+  </div>
+</div>
+{% endif %}
+{% endblock %}

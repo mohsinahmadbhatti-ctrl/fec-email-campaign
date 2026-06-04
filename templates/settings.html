@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}Settings — FEC Email Portal{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <h4 class="mb-1"><i class="bi bi-gear me-2 text-primary"></i>Email Provider Settings</h4>
+    <p class="text-muted mb-4">Configure your free email sending providers. Together Brevo + Mailjet = <strong>500 emails/day free</strong>.</p>
+
+    <div class="alert alert-info">
+      <i class="bi bi-info-circle me-2"></i>
+      <strong>Free Account Setup:</strong>
+      Sign up at <a href="https://www.brevo.com" target="_blank">brevo.com</a> (300/day free, no credit card) and
+      <a href="https://www.mailjet.com" target="_blank">mailjet.com</a> (200/day free, no credit card).
+      Get your API keys from their dashboards and paste them below.
+    </div>
+
+    <form method="post">
+      <!-- Brevo -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+          <div class="fw-semibold">
+            <span class="badge bg-primary me-2">300/day free</span>
+            Brevo (formerly Sendinblue)
+          </div>
+          <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" name="brevo_enabled" id="brevoEnabled"
+                   {% if providers.get('brevo') and providers['brevo'].enabled %}checked{% endif %}>
+            <label class="form-check-label" for="brevoEnabled">Enabled</label>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">API Key</label>
+            <div class="input-group">
+              <input type="password" name="brevo_api_key" class="form-control font-monospace" id="brevoKey"
+                     value="{{ providers.get('brevo').api_key if providers.get('brevo') else '' }}"
+                     placeholder="xkeysib-...">
+              <button type="button" class="btn btn-outline-secondary" onclick="toggleVis('brevoKey')">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+            <div class="form-text">
+              Get it from: Brevo Dashboard → Settings → API Keys → Generate New Key
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Daily Limit</label>
+            <input type="number" name="brevo_daily_limit" class="form-control" style="width:120px"
+                   value="{{ providers.get('brevo').daily_limit if providers.get('brevo') else 300 }}">
+            <div class="form-text">Brevo free plan: 300/day</div>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-info" onclick="testProvider('brevo')">
+            <i class="bi bi-wifi me-1"></i>Test Connection
+          </button>
+          <span id="brevoTestResult" class="ms-2 small"></span>
+        </div>
+      </div>
+
+      <!-- Mailjet -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+          <div class="fw-semibold">
+            <span class="badge bg-success me-2">200/day free</span>
+            Mailjet
+          </div>
+          <div class="form-check form-switch mb-0">
+            <input class="form-check-input" type="checkbox" name="mailjet_enabled" id="mailjetEnabled"
+                   {% if providers.get('mailjet') and providers['mailjet'].enabled %}checked{% endif %}>
+            <label class="form-check-label" for="mailjetEnabled">Enabled</label>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">API Key (Public)</label>
+              <div class="input-group">
+                <input type="password" name="mailjet_api_key" class="form-control font-monospace" id="mjKey"
+                       value="{{ providers.get('mailjet').api_key if providers.get('mailjet') else '' }}"
+                       placeholder="a1b2c3...">
+                <button type="button" class="btn btn-outline-secondary" onclick="toggleVis('mjKey')">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Secret Key (Private)</label>
+              <div class="input-group">
+                <input type="password" name="mailjet_api_secret" class="form-control font-monospace" id="mjSecret"
+                       value="{{ providers.get('mailjet').api_secret if providers.get('mailjet') else '' }}"
+                       placeholder="s3cr3t...">
+                <button type="button" class="btn btn-outline-secondary" onclick="toggleVis('mjSecret')">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="form-text mb-3">
+            Get it from: Mailjet Dashboard → Account Settings → REST API → API Key Management
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Daily Limit</label>
+            <input type="number" name="mailjet_daily_limit" class="form-control" style="width:120px"
+                   value="{{ providers.get('mailjet').daily_limit if providers.get('mailjet') else 200 }}">
+            <div class="form-text">Mailjet free plan: 200/day</div>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-info" onclick="testProvider('mailjet')">
+            <i class="bi bi-wifi me-1"></i>Test Connection
+          </button>
+          <span id="mailjetTestResult" class="ms-2 small"></span>
+        </div>
+      </div>
+
+      <div class="card border-0 shadow-sm mb-4 bg-light">
+        <div class="card-body">
+          <h6 class="fw-semibold"><i class="bi bi-calculator me-1"></i>Daily Capacity Summary</h6>
+          <div class="table-responsive">
+            <table class="table table-sm mb-0">
+              <tbody>
+                <tr><td>Brevo (free)</td><td class="text-end fw-bold">300 emails/day</td></tr>
+                <tr><td>Mailjet (free)</td><td class="text-end fw-bold">200 emails/day</td></tr>
+                <tr class="table-success fw-bold"><td>Total</td><td class="text-end">500 emails/day</td></tr>
+                <tr class="text-muted small"><td colspan="2">3,247 contacts ÷ 500/day = ~6.5 days to complete your full list</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary w-100 btn-lg">
+        <i class="bi bi-save me-2"></i>Save Settings
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleVis(id) {
+  const el = document.getElementById(id);
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+async function testProvider(name) {
+  const el = document.getElementById(name + 'TestResult');
+  el.innerHTML = '<span class="text-muted">Testing…</span>';
+  try {
+    const resp = await fetch(`/settings/test-provider/${name}`, {method: 'POST'});
+    const data = await resp.json();
+    el.innerHTML = data.ok
+      ? `<span class="text-success"><i class="bi bi-check-circle me-1"></i>${data.msg}</span>`
+      : `<span class="text-danger"><i class="bi bi-x-circle me-1"></i>${data.msg}</span>`;
+  } catch(e) {
+    el.innerHTML = `<span class="text-danger">Error: ${e.message}</span>`;
+  }
+}
+</script>
+{% endblock %}

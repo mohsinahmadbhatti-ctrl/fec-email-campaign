@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Import Contacts — FEC Email Portal{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <h4 class="mb-4"><i class="bi bi-upload me-2 text-primary"></i>Import Contacts from CSV</h4>
+
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-transparent fw-semibold">CSV Format</div>
+      <div class="card-body">
+        <p class="text-muted small mb-2">Your CSV should have these columns (headers are flexible):</p>
+        <code>email, first_name, last_name, company, title</code>
+        <p class="text-muted small mt-2 mb-0">Only <strong>email</strong> is required. Duplicates are detected and skipped automatically.</p>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">CSV File <span class="text-danger">*</span></label>
+            <input type="file" name="csv_file" accept=".csv" class="form-control" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Add to List</label>
+            <select name="list_id" class="form-select" id="existingList">
+              <option value="">— Create new list —</option>
+              {% for lst in lists %}
+              <option value="{{ lst.id }}">{{ lst.name }} ({{ lst.count() }} contacts)</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-4" id="newListGroup">
+            <label class="form-label fw-semibold">New List Name</label>
+            <input type="text" name="new_list_name" class="form-control" placeholder="e.g. UAE Recruiters Q2 2025">
+            <div class="form-text">Leave blank to not add to any list.</div>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-upload me-2"></i>Import Contacts
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="mt-3 text-center">
+      <span class="text-muted small">or</span>
+      <form action="{{ url_for('import_legacy_csv') }}" method="post" class="mt-2">
+        <button type="submit" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-file-earmark-arrow-up me-1"></i>Import from legacy contacts.csv ({{ 3247 }} leads)
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('existingList').addEventListener('change', function() {
+  document.getElementById('newListGroup').style.display = this.value ? 'none' : '';
+});
+</script>
+{% endblock %}

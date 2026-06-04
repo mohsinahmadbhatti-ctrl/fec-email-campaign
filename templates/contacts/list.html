@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Contacts — FEC Email Portal{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h4 class="mb-0"><i class="bi bi-people me-2 text-primary"></i>Contacts</h4>
+  <a href="{{ url_for('import_contacts') }}" class="btn btn-primary btn-sm">
+    <i class="bi bi-upload me-1"></i>Import CSV
+  </a>
+</div>
+
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-body py-2">
+    <form method="get" class="d-flex gap-2">
+      <input type="search" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Search name, email, company…">
+      <button type="submit" class="btn btn-sm btn-outline-primary px-3">Search</button>
+      {% if q %}<a href="{{ url_for('contacts') }}" class="btn btn-sm btn-outline-secondary">Clear</a>{% endif %}
+    </form>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+    <span class="fw-semibold">{{ pagination.total }} contacts{% if q %} matching "{{ q }}"{% endif %}</span>
+    <span class="text-muted small">Page {{ pagination.page }} of {{ pagination.pages }}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Email</th>
+          <th>Name</th>
+          <th>Company</th>
+          <th>Title</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in pagination.items %}
+        <tr>
+          <td class="font-monospace small">{{ c.email }}</td>
+          <td>{{ c.full_name() }}</td>
+          <td class="text-muted">{{ c.company }}</td>
+          <td class="text-muted small">{{ c.title }}</td>
+          <td>
+            {% if c.unsubscribed %}
+              <span class="badge bg-danger">Unsubscribed</span>
+            {% else %}
+              <span class="badge bg-success">Active</span>
+            {% endif %}
+          </td>
+          <td>
+            <form action="{{ url_for('unsubscribe_contact', contact_id=c.id) }}" method="post" class="d-inline">
+              <button class="btn btn-sm btn-outline-{{ 'success' if c.unsubscribed else 'danger' }}">
+                {{ 'Resubscribe' if c.unsubscribed else 'Unsub' }}
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card-footer bg-transparent">
+    <nav>
+      <ul class="pagination pagination-sm mb-0 justify-content-center">
+        {% if pagination.has_prev %}
+          <li class="page-item"><a class="page-link" href="?page={{ pagination.prev_num }}&q={{ q }}">Previous</a></li>
+        {% endif %}
+        {% for p in pagination.iter_pages() %}
+          {% if p %}
+            <li class="page-item {% if p == pagination.page %}active{% endif %}">
+              <a class="page-link" href="?page={{ p }}&q={{ q }}">{{ p }}</a>
+            </li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+          {% endif %}
+        {% endfor %}
+        {% if pagination.has_next %}
+          <li class="page-item"><a class="page-link" href="?page={{ pagination.next_num }}&q={{ q }}">Next</a></li>
+        {% endif %}
+      </ul>
+    </nav>
+  </div>
+</div>
+{% endblock %}

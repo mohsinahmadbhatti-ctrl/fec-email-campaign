@@ -1,0 +1,54 @@
+body {
+  background-color: #f8f9fa;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.navbar-brand {
+  font-size: 1.1rem;
+}
+
+.card {
+  border-radius: 12px;
+}
+
+.table th {
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6c757d;
+}
+
+.display-6 {
+  font-size: 2rem;
+}
+
+.font-monospace {
+  font-size: 0.82rem;
+}
+
+.badge {
+  font-weight: 500;
+  font-size: 0.72rem;
+}
+
+.progress {
+  border-radius: 6px;
+}
+
+.progress-bar {
+  border-radius: 6px;
+}
+
+textarea.font-monospace {
+  resize: vertical;
+}
+
+.alert {
+  border-radius: 10px;
+  border: none;
+}
+
+footer {
+  color: #adb5bd;
+}

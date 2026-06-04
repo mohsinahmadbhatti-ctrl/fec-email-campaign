@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}New Campaign — FEC Email Portal{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <h4 class="mb-4"><i class="bi bi-send-plus me-2 text-primary"></i>Create Campaign</h4>
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Campaign Name <span class="text-danger">*</span></label>
+            <input type="text" name="name" class="form-control" required placeholder="e.g. UAE Outreach June 2025">
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">From Name <span class="text-danger">*</span></label>
+              <input type="text" name="from_name" class="form-control" required placeholder="Mohsin Ahmad Bhatti">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">From Email <span class="text-danger">*</span></label>
+              <input type="email" name="from_email" class="form-control" required placeholder="mohsin@futureedge-consulting.com">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Reply-To Email <span class="text-muted small">(optional)</span></label>
+            <input type="email" name="reply_to" class="form-control" placeholder="replies@yourdomain.com">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Email Template <span class="text-danger">*</span></label>
+            <select name="template_id" class="form-select" required>
+              <option value="">— Select template —</option>
+              {% for t in templates %}
+              <option value="{{ t.id }}">{{ t.name }} — {{ t.subject }}</option>
+              {% endfor %}
+            </select>
+            {% if not templates %}
+            <div class="form-text text-warning"><i class="bi bi-exclamation-triangle me-1"></i>No templates yet. <a href="{{ url_for('create_template') }}">Create one first.</a></div>
+            {% endif %}
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Contact List <span class="text-danger">*</span></label>
+            <select name="list_id" class="form-select" required>
+              <option value="">— Select list —</option>
+              {% for lst in lists %}
+              <option value="{{ lst.id }}">{{ lst.name }} ({{ lst.count() }} contacts)</option>
+              {% endfor %}
+            </select>
+            {% if not lists %}
+            <div class="form-text text-warning"><i class="bi bi-exclamation-triangle me-1"></i>No lists yet. <a href="{{ url_for('import_contacts') }}">Import contacts first.</a></div>
+            {% endif %}
+          </div>
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Daily Limit</label>
+            <input type="number" name="daily_limit" class="form-control" value="500" min="1" max="500">
+            <div class="form-text">Max 500/day (Brevo 300 + Mailjet 200). You can send multiple batches per day up to this limit.</div>
+          </div>
+          <div class="d-flex gap-2">
+            <a href="{{ url_for('campaigns') }}" class="btn btn-outline-secondary flex-grow-1">Cancel</a>
+            <button type="submit" class="btn btn-primary flex-grow-1">Create Campaign</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
