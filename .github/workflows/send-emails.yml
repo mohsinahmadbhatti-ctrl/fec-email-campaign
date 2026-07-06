@@ -2,7 +2,7 @@ name: Send Emails (10 every 4 hours)
 
 on:
   schedule:
-    - cron: '0 */4 * * *'   # Runs at 00:00, 04:00, 08:00, 12:00, 16:00, 20:00 UTC
+    - cron: '0 * * * *'     # Runs every hour, 24x per day
   workflow_dispatch:          # Also lets you trigger manually from GitHub UI
 
 jobs:
