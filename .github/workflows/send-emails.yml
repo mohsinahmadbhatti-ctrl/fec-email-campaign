@@ -1,4 +1,4 @@
-name: Send Emails (10 every 4 hours)
+name: Send Emails (10 per hour)
 
 on:
   schedule:
