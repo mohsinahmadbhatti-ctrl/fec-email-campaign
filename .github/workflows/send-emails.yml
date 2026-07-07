@@ -22,7 +22,7 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Send emails
+      - name: Send emails (with retry)
         env:
           SMTP_HOST:      mail.futureedge-consulting.com
           SMTP_PORT:      "465"
@@ -33,7 +33,17 @@ jobs:
           SENDER_NAME:    Mohsin
           BATCH_SIZE:     "10"
         run: |
-          python send_emails.py
+          for attempt in 1 2 3; do
+            echo "Attempt $attempt of 3..."
+            python send_emails.py && break
+            if [ $attempt -lt 3 ]; then
+              echo "Failed. Waiting 60s before retry..."
+              sleep 60
+            else
+              echo "All 3 attempts failed."
+              exit 1
+            fi
+          done
 
       - name: Commit updated contacts.csv
         run: |
