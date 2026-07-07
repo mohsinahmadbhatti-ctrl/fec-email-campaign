@@ -25,7 +25,7 @@ jobs:
       - name: Send emails
         env:
           SMTP_HOST:      mail.futureedge-consulting.com
-          SMTP_PORT:      "587"
+          SMTP_PORT:      "465"
           IMAP_HOST:      mail.futureedge-consulting.com
           IMAP_PORT:      "993"
           FROM_EMAIL:     mohsin.bhatti@futureedge-consulting.com

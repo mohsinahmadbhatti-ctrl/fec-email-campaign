@@ -21,7 +21,7 @@ from email.mime.multipart import MIMEMultipart
 # ── Config ────────────────────────────────────────────────────────────────────
 
 SMTP_HOST   = os.getenv("SMTP_HOST",     "mail.futureedge-consulting.com")
-SMTP_PORT   = int(os.getenv("SMTP_PORT", "587"))
+SMTP_PORT   = int(os.getenv("SMTP_PORT", "465"))
 IMAP_HOST   = os.getenv("IMAP_HOST",     "mail.futureedge-consulting.com")
 IMAP_PORT   = int(os.getenv("IMAP_PORT", "993"))
 FROM_EMAIL  = os.getenv("FROM_EMAIL",    "mohsin.bhatti@futureedge-consulting.com")
@@ -214,10 +214,7 @@ def main():
         return
 
     # Connect SMTP
-    smtp = smtplib.SMTP(SMTP_HOST, SMTP_PORT)
-    smtp.ehlo()
-    smtp.starttls()
-    smtp.ehlo()
+    smtp = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT)
     smtp.login(FROM_EMAIL, EMAIL_PASS)
 
     # Connect IMAP (for Sent folder copy)
@@ -265,10 +262,7 @@ def main():
 
     # Send summary to Mohsin
     total_done_now = total_sent + sent_count
-    smtp2 = smtplib.SMTP(SMTP_HOST, SMTP_PORT)
-    smtp2.ehlo()
-    smtp2.starttls()
-    smtp2.ehlo()
+    smtp2 = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT)
     smtp2.login(FROM_EMAIL, EMAIL_PASS)
     send_summary(smtp2, sent_count, fail_count, total_done_now, len(contacts), log_lines)
     smtp2.quit()
