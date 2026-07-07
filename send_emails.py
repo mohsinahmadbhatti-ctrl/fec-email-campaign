@@ -20,8 +20,12 @@ from email.mime.multipart import MIMEMultipart
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-SMTP_HOST   = os.getenv("SMTP_HOST",     "mail.futureedge-consulting.com")
-SMTP_PORT   = int(os.getenv("SMTP_PORT", "465"))
+# SMTP goes through Brevo relay (hosting firewall blocks GitHub Actions IPs)
+SMTP_HOST   = os.getenv("SMTP_HOST",     "smtp-relay.brevo.com")
+SMTP_PORT   = int(os.getenv("SMTP_PORT", "587"))
+SMTP_LOGIN  = os.getenv("SMTP_LOGIN",    "")
+SMTP_PASS   = os.getenv("SMTP_PASSWORD", "")
+# IMAP still hits the cPanel mailbox directly for the Sent-folder copy
 IMAP_HOST   = os.getenv("IMAP_HOST",     "mail.futureedge-consulting.com")
 IMAP_PORT   = int(os.getenv("IMAP_PORT", "993"))
 FROM_EMAIL  = os.getenv("FROM_EMAIL",    "mohsin.bhatti@futureedge-consulting.com")
@@ -115,27 +119,21 @@ def build_message(to_email: str, subject: str, body: str) -> MIMEMultipart:
 
 
 def connect_smtp() -> smtplib.SMTP:
-    """Try port 465 (SSL) then 587 (STARTTLS). Host firewall intermittently
-    blocks GitHub Actions IPs, so a fast timeout + port fallback beats
-    waiting 2+ minutes on a dead socket."""
-    attempts = [(465, "ssl"), (587, "starttls"), (465, "ssl"), (587, "starttls")]
+    """Connect to Brevo relay: 587 STARTTLS primary, 2525 fallback."""
     last_err = None
-    for port, mode in attempts:
+    for port in (SMTP_PORT, 2525):
         try:
-            if mode == "ssl":
-                smtp = smtplib.SMTP_SSL(SMTP_HOST, port, timeout=25)
-            else:
-                smtp = smtplib.SMTP(SMTP_HOST, port, timeout=25)
-                smtp.ehlo()
-                smtp.starttls()
-                smtp.ehlo()
-            smtp.login(FROM_EMAIL, EMAIL_PASS)
-            print(f"  SMTP connected on port {port} ({mode})")
+            smtp = smtplib.SMTP(SMTP_HOST, port, timeout=25)
+            smtp.ehlo()
+            smtp.starttls()
+            smtp.ehlo()
+            smtp.login(SMTP_LOGIN, SMTP_PASS)
+            print(f"  SMTP connected: {SMTP_HOST}:{port}")
             return smtp
         except Exception as e:
             last_err = e
-            print(f"  SMTP port {port} ({mode}) failed: {e}")
-            time.sleep(10)
+            print(f"  SMTP {SMTP_HOST}:{port} failed: {e}")
+            time.sleep(5)
     raise last_err
 
 
@@ -160,7 +158,7 @@ def copy_to_sent(imap: imaplib.IMAP4_SSL, sent_folder: str, msg: MIMEMultipart):
 def send_summary(smtp: smtplib.SMTP, sent_count: int, fail_count: int,
                  total_done: int, total_contacts: int, log_lines: list[str]):
     remaining = total_contacts - total_done
-    days_left  = remaining / (BATCH_SIZE * 6) if BATCH_SIZE else 0
+    days_left  = remaining / (BATCH_SIZE * 24) if BATCH_SIZE else 0
 
     subject = f"Campaign update: {sent_count} emails sent — {total_done}/{total_contacts} total"
 
@@ -199,8 +197,8 @@ def main():
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
-    if not EMAIL_PASS and not args.dry_run:
-        raise SystemExit("❌  EMAIL_PASSWORD not set.")
+    if not args.dry_run and not (SMTP_LOGIN and SMTP_PASS):
+        raise SystemExit("❌  SMTP_LOGIN / SMTP_PASSWORD not set.")
 
     subject_template, body_template = load_template()
     contacts = load_contacts()
@@ -241,11 +239,19 @@ def main():
     # Connect SMTP
     smtp = connect_smtp()
 
-    # Connect IMAP (for Sent folder copy)
-    imap = imaplib.IMAP4_SSL(IMAP_HOST, IMAP_PORT)
-    imap.login(FROM_EMAIL, EMAIL_PASS)
-    sent_folder = find_imap_folder(imap, "sent")
-    print(f"  IMAP Sent folder: {sent_folder}\n")
+    # Connect IMAP (for Sent folder copy) — best-effort: the cPanel host
+    # sometimes blocks GitHub Actions IPs, and a missing Sent copy should
+    # never stop the actual sending.
+    imap = None
+    sent_folder = None
+    try:
+        imap = imaplib.IMAP4_SSL(IMAP_HOST, IMAP_PORT, timeout=25)
+        imap.login(FROM_EMAIL, EMAIL_PASS)
+        sent_folder = find_imap_folder(imap, "sent")
+        print(f"  IMAP Sent folder: {sent_folder}\n")
+    except Exception as e:
+        print(f"  IMAP unavailable ({e}) — sending anyway, no Sent copies this run\n")
+        imap = None
 
     try:
         for contact in batch:
@@ -267,7 +273,6 @@ def main():
 
             try:
                 smtp.sendmail(FROM_EMAIL, to_email, msg.as_string())
-                copy_to_sent(imap, sent_folder, msg)         # → appears in Outlook Sent
                 contact["sent_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
                 sent_emails.add(to_email)
                 sent_count += 1
@@ -276,10 +281,21 @@ def main():
             except Exception as e:
                 fail_count += 1
                 print(f"  FAIL  {name:<28} → {to_email}  ({e})")
+                continue
+
+            if imap is not None:
+                try:
+                    copy_to_sent(imap, sent_folder, msg)     # → appears in Outlook Sent
+                except Exception as e:
+                    print(f"        (Sent-folder copy failed: {e})")
 
     finally:
         smtp.quit()
-        imap.logout()
+        if imap is not None:
+            try:
+                imap.logout()
+            except Exception:
+                pass
 
     # Save progress
     save_contacts(contacts)

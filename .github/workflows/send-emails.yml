@@ -23,8 +23,10 @@ jobs:
 
       - name: Send emails (with retry)
         env:
-          SMTP_HOST:      mail.futureedge-consulting.com
-          SMTP_PORT:      "465"
+          SMTP_HOST:      smtp-relay.brevo.com
+          SMTP_PORT:      "587"
+          SMTP_LOGIN:     ${{ secrets.BREVO_LOGIN }}
+          SMTP_PASSWORD:  ${{ secrets.BREVO_SMTP_KEY }}
           IMAP_HOST:      mail.futureedge-consulting.com
           IMAP_PORT:      "993"
           FROM_EMAIL:     mohsin.bhatti@futureedge-consulting.com
