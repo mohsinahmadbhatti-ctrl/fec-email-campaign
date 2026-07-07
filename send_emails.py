@@ -114,6 +114,31 @@ def build_message(to_email: str, subject: str, body: str) -> MIMEMultipart:
     return msg
 
 
+def connect_smtp() -> smtplib.SMTP:
+    """Try port 465 (SSL) then 587 (STARTTLS). Host firewall intermittently
+    blocks GitHub Actions IPs, so a fast timeout + port fallback beats
+    waiting 2+ minutes on a dead socket."""
+    attempts = [(465, "ssl"), (587, "starttls"), (465, "ssl"), (587, "starttls")]
+    last_err = None
+    for port, mode in attempts:
+        try:
+            if mode == "ssl":
+                smtp = smtplib.SMTP_SSL(SMTP_HOST, port, timeout=25)
+            else:
+                smtp = smtplib.SMTP(SMTP_HOST, port, timeout=25)
+                smtp.ehlo()
+                smtp.starttls()
+                smtp.ehlo()
+            smtp.login(FROM_EMAIL, EMAIL_PASS)
+            print(f"  SMTP connected on port {port} ({mode})")
+            return smtp
+        except Exception as e:
+            last_err = e
+            print(f"  SMTP port {port} ({mode}) failed: {e}")
+            time.sleep(10)
+    raise last_err
+
+
 def find_imap_folder(imap: imaplib.IMAP4_SSL, keyword: str) -> str:
     _, folder_list = imap.list()
     for entry in folder_list:
@@ -214,8 +239,7 @@ def main():
         return
 
     # Connect SMTP
-    smtp = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT)
-    smtp.login(FROM_EMAIL, EMAIL_PASS)
+    smtp = connect_smtp()
 
     # Connect IMAP (for Sent folder copy)
     imap = imaplib.IMAP4_SSL(IMAP_HOST, IMAP_PORT)
@@ -262,8 +286,7 @@ def main():
 
     # Send summary to Mohsin
     total_done_now = total_sent + sent_count
-    smtp2 = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT)
-    smtp2.login(FROM_EMAIL, EMAIL_PASS)
+    smtp2 = connect_smtp()
     send_summary(smtp2, sent_count, fail_count, total_done_now, len(contacts), log_lines)
     smtp2.quit()
 

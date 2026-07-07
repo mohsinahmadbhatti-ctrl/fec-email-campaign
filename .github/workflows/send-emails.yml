@@ -1,9 +1,8 @@
 name: Send Emails (10 per hour)
 
 on:
-  schedule:
-    - cron: '0 * * * *'     # Runs every hour, 24x per day
-  workflow_dispatch:          # Also lets you trigger manually from GitHub UI
+  workflow_dispatch:          # Triggered hourly by cron-job.org (GitHub's own
+                              # cron scheduler is unreliable on free plans)
 
 jobs:
   send:
@@ -37,8 +36,8 @@ jobs:
             echo "Attempt $attempt of 3..."
             python send_emails.py && break
             if [ $attempt -lt 3 ]; then
-              echo "Failed. Waiting 60s before retry..."
-              sleep 60
+              echo "Failed. Waiting 180s before retry..."
+              sleep 180
             else
               echo "All 3 attempts failed."
               exit 1
