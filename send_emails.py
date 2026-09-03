@@ -17,6 +17,8 @@ from pathlib import Path
 from datetime import datetime, timezone
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
@@ -33,9 +35,10 @@ EMAIL_PASS  = os.getenv("EMAIL_PASSWORD", "")
 SENDER_NAME = os.getenv("SENDER_NAME",   "Mohsin")
 BATCH_SIZE  = int(os.getenv("BATCH_SIZE", "10"))
 
-DIR           = Path(__file__).parent
-CONTACTS_FILE = DIR / "contacts.csv"
-TEMPLATE_FILE = DIR / "email_template.txt"
+DIR             = Path(__file__).parent
+CONTACTS_FILE   = DIR / "contacts.csv"
+TEMPLATE_FILE   = DIR / "email_template.txt"
+ATTACHMENT_FILE = DIR / "attachment.pdf"
 
 DEFAULT_SUBJECT = "Quick thought on {company_name}"
 
@@ -108,13 +111,26 @@ def save_contacts(contacts: list[dict]):
 
 
 def build_message(to_email: str, subject: str, body: str) -> MIMEMultipart:
-    msg = MIMEMultipart("alternative")
+    msg = MIMEMultipart("mixed")
     msg["From"]       = f"{SENDER_NAME} <{FROM_EMAIL}>"
     msg["To"]         = to_email
     msg["Subject"]    = subject
     msg["Date"]       = email.utils.formatdate(localtime=False)
     msg["Message-ID"] = email.utils.make_msgid(domain=FROM_EMAIL.split("@")[1])
     msg.attach(MIMEText(body, "plain", "utf-8"))
+
+    # Attach PDF if present
+    if ATTACHMENT_FILE.exists():
+        with open(ATTACHMENT_FILE, "rb") as f:
+            part = MIMEBase("application", "pdf")
+            part.set_payload(f.read())
+        encoders.encode_base64(part)
+        part.add_header(
+            "Content-Disposition",
+            f'attachment; filename="AI and Cybersecurity Assessments - Mercer.pdf"',
+        )
+        msg.attach(part)
+
     return msg
 
 
