@@ -1,22 +1,20 @@
-Subject: Who actually replaces your top 5 leaders, {company_name}?
+Subject: {company_name} is adopting AI fast, is your workforce keeping up safely?
 
 Hi {first_name},
 
-Most succession plans answer the wrong question. They list who might be ready someday. They rarely answer the one that matters: if your CEO, CFO, or a critical business head left tomorrow, who steps in and how confident is the board in that answer?
+Two things are happening simultaneously in most organisations. AI tools are being adopted faster than any technology in a generation. And the workforce using them is creating security exposures that didn't exist a year ago.
 
-The gap between a name on a chart and a leader who is genuinely ready is where organisations get hurt. Internal candidates get promoted on tenure and visibility. External hires take 12-18 months to reach full capacity. Neither outcome is a plan.
+The numbers are stark. 63% of organisations have redesigned work for AI, but 95% of Gen AI pilots are failing. 84% of employees have exposed proprietary data in the past three months. The cost of a data breach now averages $4.45 million. These aren't separate problems, they're two sides of the same gap: a workforce that hasn't been assessed for either AI readiness or cyber awareness.
 
-Future Edge Consulting works with Mercer Mettl's assessment platform to bring evidence into succession decisions. Psychometric profiling, leadership readiness assessments, and capability benchmarking that tell a board exactly where each candidate stands, what development they need, and how long the runway is.
+Future Edge Consulting partners with Mercer to deploy assessments across both dimensions:
 
-What that looks like in practice:
-— Objective readiness scores for each successor candidate, not manager opinion
-— Gap analysis mapped to the specific role they would step into
-— Development plans with timelines, tied to measurable capability shifts
-— Benchmarking against external leadership norms in your industry
+AI Agility — measuring behavioural predisposition to adopt new technology, cognitive ability to evaluate AI outputs, and applied skills like prompt engineering. Available for general workforce (20-30 minutes) and developers (60 minutes, covering GenAI foundations, code verification, and security compliance).
 
-Mercer Mettl announced the partnership here: https://www.linkedin.com/posts/mettl_annoucement-resellerpartner-assessmentsolutions-activity-7477949140946300928-VajV
+Cybersecurity for Everyday Users — measuring baseline cyber hygiene, security-conscious attitudes, and scenario-based applied skills. Produces a skill gap report per employee and a risk mitigation roadmap for the organisation.
 
-Organisations that build succession on evidence move faster at the top and break less when transitions happen. Our details are below.
+Mercer Mettl announced the partnership here: https://www.linkedin.com/posts/annoucement-resellerpartner-assessmentsolutions-share-7477946575869308928-twdS/?utm_source=share&utm_medium=member_ios&rcm=ACoAABRVxUMBq6cu6sbcRf-jIAwQPtvAkOHr2wI
+
+Organisations building AI capability and cyber resilience in parallel move faster and break less. Those doing one without the other are borrowing time. Our details are below.
 
 Mohsin Ahmad Bhatti
 Founder & Director | Future Edge Consulting Pvt Ltd
