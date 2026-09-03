@@ -1,0 +1,22 @@
+Subject: {company_name} is going tech-first. Is your workforce?
+
+Hi {first_name},
+
+Every organisation is running the same two experiments right now: pushing AI into daily work, and hoping the workforce doesn't become the weak point in its security posture. Half of professional developers already use AI tools daily, while 84% of employees admit to exposing company data in the past three months. Both experiments succeed or fail on the same variable — people.
+
+Future Edge Consulting works with Mercer, the world's largest player in skill assessments with over 20 million assessments delivered a year, to give leadership an evidence base on that variable. For a tech-first agenda, the engagement typically runs in three layers:
+
+— A role-specific AI assessment (45–60 minutes) measuring the domain capability plus the applied AI skills each role needs in an AI-enabled workplace, benchmarked globally
+— The Cyber Security Assessment for Everyday Users (30 minutes) establishing the baseline cyber hygiene expected of every employee
+— A quarterly AI-readiness pulse (20–30 minutes), co-defined with your priority use cases, so capability keeps pace as GenAI tools evolve
+
+Everything is delivered on Mercer's AI-proctored platform — 50,000+ proctored assessments a day — with individual reports, skill-gap analysis, and leadership dashboards rather than raw scores.
+
+Digital transformation plans rarely fail on technology selection. They fail on unmeasured people assumptions. If {company_name} would benefit from replacing those assumptions with data, I'd welcome a brief conversation.
+
+Mohsin Ahmad Bhatti
+Founder & Director | Future Edge Consulting Pvt Ltd
+P: +92 307 2202237   M: +44 746 3987384
+W: www.futureedge-consulting.com
+E: mohsin.bhatti@futureedge-consulting.com
+A: 7th Floor, Executive Tower, Dolmen Mall, Clifton, Karachi, Pakistan

@@ -1,0 +1,22 @@
+Subject: Why 95% of GenAI pilots fail — and what {company_name} can measure first
+
+Hi {first_name},
+
+MIT's 2025 finding that 95% of enterprise GenAI pilots are failing surprised almost no one who has watched one up close. The tools work. What fails is the assumption that a workforce will adapt to them on its own — only 21% of organisations say they have the talent agility to meet their growth goals.
+
+Future Edge Consulting deploys Mercer's AI Agility Assessment Suite to replace that assumption with measurement. It profiles how individuals actually respond to AI-driven change across three dimensions: behavioural predisposition (openness to adopting new technologies), cognitive ability (handling novel problems), and applied skill — from prompt engineering for the general workforce to a dedicated assessment for developers covering GenAI foundations, code verification, and security compliance.
+
+The framework is measure, map, mobilize:
+— Measure AI readiness across the workforce, individual by individual
+— Map strengths and gaps against the roles and AI use cases that matter to you
+— Mobilize with upskilling targeted at measured gaps — and hire for AI agility from the start
+— Re-run as a quarterly pulse, so readiness keeps pace with how fast the tools change
+
+The value of AI transformation depends on people, not tech. If {company_name} is investing in AI this year, knowing who will adapt fastest is the cheapest insurance available — I'd welcome a brief conversation.
+
+Mohsin Ahmad Bhatti
+Founder & Director | Future Edge Consulting Pvt Ltd
+P: +92 307 2202237   M: +44 746 3987384
+W: www.futureedge-consulting.com
+E: mohsin.bhatti@futureedge-consulting.com
+A: 7th Floor, Executive Tower, Dolmen Mall, Clifton, Karachi, Pakistan
