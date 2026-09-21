@@ -127,7 +127,7 @@ def build_message(to_email: str, subject: str, body: str) -> MIMEMultipart:
         encoders.encode_base64(part)
         part.add_header(
             "Content-Disposition",
-            f'attachment; filename="AI and Cybersecurity Assessments - Mercer.pdf"',
+            f'attachment; filename="FEC Company Profile.pdf"',
         )
         msg.attach(part)
 

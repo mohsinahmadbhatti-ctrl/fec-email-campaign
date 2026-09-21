@@ -1,20 +1,38 @@
-Subject: {company_name} is adopting AI fast, is your workforce keeping up safely?
+Subject: The two gaps holding {company_name} back, and how to close them
 
 Hi {first_name},
 
-Two things are happening simultaneously in most organisations. AI tools are being adopted faster than any technology in a generation. And the workforce using them is creating security exposures that didn't exist a year ago.
+Most organisations face the same two blind spots. They make people decisions without evidence, and they build capability without knowing what's actually missing.
 
-The numbers are stark. 63% of organisations have redesigned work for AI, but 95% of Gen AI pilots are failing. 84% of employees have exposed proprietary data in the past three months. The cost of a data breach now averages $4.45 million. These aren't separate problems, they're two sides of the same gap: a workforce that hasn't been assessed for either AI readiness or cyber awareness.
+Promotions based on tenure, not readiness. Leadership pipelines that look full until tested. Training programmes that tick a box but change nothing. The cost doesn't appear on a dashboard, but it compounds every quarter.
 
-Future Edge Consulting partners with Mercer to deploy assessments across both dimensions:
+Future Edge Consulting is Mercer Mettl's exclusive partner in Pakistan, combining the world's most widely deployed talent assessment platform with custom learning solutions that close the gaps assessments reveal.
 
-AI Agility — measuring behavioural predisposition to adopt new technology, cognitive ability to evaluate AI outputs, and applied skills like prompt engineering. Available for general workforce (20-30 minutes) and developers (60 minutes, covering GenAI foundations, code verification, and security compliance).
+Talent Assessments (Mercer Mettl)
+- Psychometric and personality profiling
+- Leadership and managerial assessments
+- High-potential identification
+- Learning agility assessment
+- Succession readiness and benchmarking
+- Sales competency assessments (B2B, B2C, channel)
+- Cognitive and aptitude testing
+- Technical and coding assessments
+- English communication assessment
+- AI readiness and cybersecurity awareness assessments
+- 360-degree feedback and development centres
 
-Cybersecurity for Everyday Users — measuring baseline cyber hygiene, security-conscious attitudes, and scenario-based applied skills. Produces a skill gap report per employee and a risk mitigation roadmap for the organisation.
+Learning & Development (LMS)
+- Custom eLearning module design and development
+- Customised eLearning platforms tailored to your organisation
+- VR simulation-based training for immersive learning experiences
+
+Assessments tell you where people stand. Learning solutions move them to where they need to be. Most organisations do one without the other, which is why neither delivers.
 
 Mercer Mettl announced the partnership here: https://www.linkedin.com/posts/annoucement-resellerpartner-assessmentsolutions-share-7477946575869308928-twdS/?utm_source=share&utm_medium=member_ios&rcm=ACoAABRVxUMBq6cu6sbcRf-jIAwQPtvAkOHr2wI
 
-Organisations building AI capability and cyber resilience in parallel move faster and break less. Those doing one without the other are borrowing time. Our details are below.
+Organisations that measure talent and develop it in one system build faster and break less. Company profile attached.
+
+Book your free demo: simply reply to this email.
 
 Mohsin Ahmad Bhatti
 Founder & Director | Future Edge Consulting Pvt Ltd
