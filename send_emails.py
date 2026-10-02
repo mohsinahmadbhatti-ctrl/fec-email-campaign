@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
 """
-Email Sender — reads contacts.csv, sends next N emails via SMTP, marks them sent.
-Copies each sent email to IMAP Sent folder (visible in Outlook).
-Sends a batch summary to Mohsin after every run.
-Designed to run on a schedule (GitHub Actions every 4 hours).
+Email Sender — 3-email drip sequence.
+
+Each contact receives up to 3 emails:
+  Email 1: Day 0   — short intro
+  Email 2: Day 3+  — follow-up with value prop
+  Email 3: Day 8+  — breakup
+
+Reads contacts.csv, determines who is due for their next email,
+sends a batch via SMTP, copies to IMAP Sent folder, and sends
+a summary to Mohsin after every run.
+
+Triggered hourly by GitHub Actions (via cron-job.org).
 """
 
 import os
@@ -17,17 +25,13 @@ from pathlib import Path
 from datetime import datetime, timezone
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from email.mime.base import MIMEBase
-from email import encoders
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-# SMTP goes through Brevo relay (hosting firewall blocks GitHub Actions IPs)
 SMTP_HOST   = os.getenv("SMTP_HOST",     "smtp-relay.brevo.com")
 SMTP_PORT   = int(os.getenv("SMTP_PORT", "587"))
 SMTP_LOGIN  = os.getenv("SMTP_LOGIN",    "")
 SMTP_PASS   = os.getenv("SMTP_PASSWORD", "")
-# IMAP still hits the cPanel mailbox directly for the Sent-folder copy
 IMAP_HOST   = os.getenv("IMAP_HOST",     "mail.futureedge-consulting.com")
 IMAP_PORT   = int(os.getenv("IMAP_PORT", "993"))
 FROM_EMAIL  = os.getenv("FROM_EMAIL",    "mohsin.bhatti@futureedge-consulting.com")
@@ -35,50 +39,35 @@ EMAIL_PASS  = os.getenv("EMAIL_PASSWORD", "")
 SENDER_NAME = os.getenv("SENDER_NAME",   "Mohsin")
 BATCH_SIZE  = int(os.getenv("BATCH_SIZE", "10"))
 
-DIR             = Path(__file__).parent
-CONTACTS_FILE   = DIR / "contacts.csv"
-TEMPLATE_FILE   = DIR / "email_template.txt"
-ATTACHMENT_FILE = DIR / "attachment.pdf"
+DIR           = Path(__file__).parent
+CONTACTS_FILE = DIR / "contacts.csv"
 
-DEFAULT_SUBJECT = "Quick thought on {company_name}"
+TEMPLATE_FILES = {
+    1: DIR / "email_template_1.txt",
+    2: DIR / "email_template_2.txt",
+    3: DIR / "email_template_3.txt",
+}
 
-DEFAULT_BODY = """\
-Hi {first_name},
-
-In your role at {company_name}, you're likely navigating the same pressures we \
-hear consistently from senior leaders across the region — HR systems that don't \
-scale cleanly, talent decisions made without the right data, and capability gaps \
-that create drag across the business.
-
-Future Edge Consulting works with organisations across the GCC and South Asia on \
-exactly these areas: talent and psychometric frameworks that bring rigour to people \
-decisions, ERP implementation that removes the friction holding operations back, and \
-capability development programmes that actually change how teams perform.
-
-Our work tends to land best with organisations that have outgrown their current \
-approach and are ready to build something more deliberate. If any of this connects \
-to what's on your plate, I'd welcome a brief conversation.
-
-Mohsin Ahmad Bhatti
-Founder & Director | Future Edge Consulting Pvt Ltd
-P: +92 307 2202237   M: +44 746 3987384
-W: www.futureedge-consulting.com
-E: mohsin.bhatti@futureedge-consulting.com
-A: 7th Floor, Executive Tower, Dolmen Mall, Clifton, Karachi, Pakistan"""
+DELAY_DAYS = {2: 3, 3: 5}
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def load_template() -> tuple[str, str]:
-    if TEMPLATE_FILE.exists():
-        text = TEMPLATE_FILE.read_text().strip()
+def load_templates() -> dict[int, tuple[str, str]]:
+    templates = {}
+    for num, path in TEMPLATE_FILES.items():
+        if not path.exists():
+            raise FileNotFoundError(f"Template {path} not found")
+        text = path.read_text().strip()
         lines = text.splitlines()
-        if lines and lines[0].lower().startswith("subject:"):
+        if lines[0].lower().startswith("subject:"):
             subject = lines[0].split(":", 1)[1].strip()
             body = "\n".join(lines[2:]).strip()
-            return subject, body
-        return DEFAULT_SUBJECT, text
-    return DEFAULT_SUBJECT, DEFAULT_BODY
+        else:
+            subject = f"Following up — {{company_name}}"
+            body = text
+        templates[num] = (subject, body)
+    return templates
 
 
 def render(template: str, contact: dict) -> str:
@@ -102,40 +91,61 @@ def save_contacts(contacts: list[dict]):
     if not contacts:
         return
     fieldnames = list(contacts[0].keys())
-    if "sent_at" not in fieldnames:
-        fieldnames.append("sent_at")
     with open(CONTACTS_FILE, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(contacts)
 
 
-def build_message(to_email: str, subject: str, body: str) -> MIMEMultipart:
+def parse_ts(s: str):
+    s = s.strip()
+    if not s:
+        return None
+    return datetime.strptime(s, "%Y-%m-%d %H:%M UTC").replace(tzinfo=timezone.utc)
+
+
+def get_next_email(contact) -> int | None:
+    """Return which email (1/2/3) to send next, or None if done or not yet due."""
+    now = datetime.now(timezone.utc)
+
+    e1 = parse_ts(contact.get("email1_sent_at", ""))
+    e2 = parse_ts(contact.get("email2_sent_at", ""))
+    e3 = parse_ts(contact.get("email3_sent_at", ""))
+
+    if not e1:
+        return 1
+
+    if e3:
+        return None
+
+    if not e2:
+        if (now - e1).total_seconds() >= DELAY_DAYS[2] * 86400:
+            return 2
+        return None
+
+    if (now - e2).total_seconds() >= DELAY_DAYS[3] * 86400:
+        return 3
+    return None
+
+
+def build_message(to_email: str, subject: str, body: str,
+                  in_reply_to: str = None) -> MIMEMultipart:
     msg = MIMEMultipart("mixed")
     msg["From"]       = f"{SENDER_NAME} <{FROM_EMAIL}>"
     msg["To"]         = to_email
     msg["Subject"]    = subject
     msg["Date"]       = email.utils.formatdate(localtime=False)
     msg["Message-ID"] = email.utils.make_msgid(domain=FROM_EMAIL.split("@")[1])
+
+    if in_reply_to:
+        msg["In-Reply-To"] = in_reply_to
+        msg["References"]  = in_reply_to
+
     msg.attach(MIMEText(body, "plain", "utf-8"))
-
-    # Attach PDF if present
-    if ATTACHMENT_FILE.exists():
-        with open(ATTACHMENT_FILE, "rb") as f:
-            part = MIMEBase("application", "pdf")
-            part.set_payload(f.read())
-        encoders.encode_base64(part)
-        part.add_header(
-            "Content-Disposition",
-            f'attachment; filename="FEC Company Profile.pdf"',
-        )
-        msg.attach(part)
-
     return msg
 
 
 def connect_smtp() -> smtplib.SMTP:
-    """Connect to Brevo relay: 587 STARTTLS primary, 2525 fallback."""
     last_err = None
     for port in (SMTP_PORT, 2525):
         try:
@@ -171,34 +181,41 @@ def copy_to_sent(imap: imaplib.IMAP4_SSL, sent_folder: str, msg: MIMEMultipart):
     )
 
 
-def send_summary(smtp: smtplib.SMTP, sent_count: int, fail_count: int,
-                 total_done: int, total_contacts: int, log_lines: list[str]):
-    remaining = total_contacts - total_done
-    days_left  = remaining / (BATCH_SIZE * 24) if BATCH_SIZE else 0
+def send_summary(smtp: smtplib.SMTP, counts: dict, total_progress: dict,
+                 total_contacts: int, log_lines: list[str]):
+    e1 = counts.get(1, 0)
+    e2 = counts.get(2, 0)
+    e3 = counts.get(3, 0)
+    fails = counts.get("fail", 0)
+    sent_total = e1 + e2 + e3
 
-    subject = f"Campaign update: {sent_count} emails sent — {total_done}/{total_contacts} total"
+    done_e1  = total_progress["email1"]
+    done_all = total_progress["completed"]
+
+    subject = f"Campaign update: {sent_total} sent — {done_e1}/{total_contacts} reached"
 
     body = f"""Campaign batch complete — {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}
 
 Batch summary
 ─────────────────────────────
-Sent this run   : {sent_count}
-Failed          : {fail_count}
+Email 1 (intro)     : {e1}
+Email 2 (follow-up) : {e2}
+Email 3 (breakup)   : {e3}
+Failed              : {fails}
 ─────────────────────────────
-Total sent      : {total_done}
-Remaining       : {remaining}
-Est. completion : ~{days_left:.0f} days at current pace
+Contacts reached    : {done_e1}/{total_contacts}
+Sequence complete   : {done_all}
 
 Emails sent this batch:
 """
     for line in log_lines:
         body += f"  {line}\n"
 
-    if fail_count:
-        body += f"\n⚠️  {fail_count} email(s) failed — check GitHub Actions logs for details."
+    if fails:
+        body += f"\n⚠️  {fails} email(s) failed — check GitHub Actions logs."
 
-    if remaining == 0:
-        body += "\n\n🎉 Campaign complete — all contacts have been emailed."
+    if done_all == total_contacts:
+        body += "\n\n🎉 Campaign complete — all contacts finished the sequence."
 
     msg = build_message(FROM_EMAIL, subject, body)
     smtp.sendmail(FROM_EMAIL, FROM_EMAIL, msg.as_string())
@@ -216,48 +233,55 @@ def main():
     if not args.dry_run and not (SMTP_LOGIN and SMTP_PASS):
         raise SystemExit("❌  SMTP_LOGIN / SMTP_PASSWORD not set.")
 
-    subject_template, body_template = load_template()
-    contacts = load_contacts()
+    templates = load_templates()
+    contacts  = load_contacts()
 
-    unsent     = [c for c in contacts if not c.get("sent_at", "").strip()]
-    batch      = unsent[: args.batch]
-    total_sent = sum(1 for c in contacts if c.get("sent_at", "").strip())
+    # Find contacts due for their next email
+    due = []
+    for contact in contacts:
+        to_email = (contact.get("email") or "").strip()
+        if not to_email:
+            continue
+        next_num = get_next_email(contact)
+        if next_num:
+            due.append((contact, next_num))
+
+    # Prioritise follow-ups (warmer leads) over new intros
+    due.sort(key=lambda x: (x[1] == 1, x[1]))
+    batch = due[: args.batch]
+
+    # Stats
+    e1_done  = sum(1 for c in contacts if parse_ts(c.get("email1_sent_at", "")))
+    all_done = sum(1 for c in contacts if parse_ts(c.get("email3_sent_at", "")))
+    due_e1   = sum(1 for _, n in due if n == 1)
+    due_e2   = sum(1 for _, n in due if n == 2)
+    due_e3   = sum(1 for _, n in due if n == 3)
 
     print(f"\n{'─'*55}")
-    print(f"  Total contacts : {len(contacts)}")
-    print(f"  Already sent   : {total_sent}")
-    print(f"  Remaining      : {len(unsent)}")
-    print(f"  This batch     : {len(batch)}")
-    print(f"  Dry run        : {args.dry_run}")
+    print(f"  Total contacts    : {len(contacts)}")
+    print(f"  Reached (email 1) : {e1_done}")
+    print(f"  Sequence complete : {all_done}")
+    print(f"  Due now  E1/E2/E3 : {due_e1}/{due_e2}/{due_e3}")
+    print(f"  This batch        : {len(batch)}")
+    print(f"  Dry run           : {args.dry_run}")
     print(f"{'─'*55}\n")
 
     if not batch:
-        print("✅  All contacts emailed. Campaign complete!")
+        print("✅  No emails due right now.")
         return
 
-    sent_count  = 0
-    fail_count  = 0
-    sent_emails = set()
-    log_lines   = []
-
     if args.dry_run:
-        for contact in batch:
+        for contact, email_num in batch:
             to_email = (contact.get("email") or "").strip()
-            name     = f"{contact.get('first_name','')} {contact.get('last_name','')}".strip()
-            company  = contact.get("company", "") or "unknown"
-            print(f"  DRY   {name:<28} → {to_email}  ({company})")
-            sent_count += 1
-        print(f"\n{'─'*55}")
-        print(f"  Would send: {sent_count}")
-        print(f"{'─'*55}\n")
+            name = f"{contact.get('first_name','')} {contact.get('last_name','')}".strip()
+            company = contact.get("company", "") or "unknown"
+            print(f"  DRY  E{email_num}  {name:<28} → {to_email}  ({company})")
         return
 
     # Connect SMTP
     smtp = connect_smtp()
 
-    # Connect IMAP (for Sent folder copy) — best-effort: the cPanel host
-    # sometimes blocks GitHub Actions IPs, and a missing Sent copy should
-    # never stop the actual sending.
+    # Connect IMAP (best-effort)
     imap = None
     sent_folder = None
     try:
@@ -266,42 +290,48 @@ def main():
         sent_folder = find_imap_folder(imap, "sent")
         print(f"  IMAP Sent folder: {sent_folder}\n")
     except Exception as e:
-        print(f"  IMAP unavailable ({e}) — sending anyway, no Sent copies this run\n")
+        print(f"  IMAP unavailable ({e}) — sending anyway\n")
         imap = None
 
+    counts    = {"fail": 0}
+    log_lines = []
+    sent_emails_this_run = set()
+
     try:
-        for contact in batch:
+        for contact, email_num in batch:
             to_email = (contact.get("email") or "").strip()
             name     = f"{contact.get('first_name','')} {contact.get('last_name','')}".strip()
             company  = contact.get("company", "") or "unknown"
 
-            if not to_email:
-                contact["sent_at"] = "SKIPPED"
+            if to_email in sent_emails_this_run:
                 continue
 
-            if to_email in sent_emails:
-                contact["sent_at"] = "DUPLICATE"
-                continue
+            subj_tpl, body_tpl = templates[email_num]
+            subject = render(subj_tpl, contact)
+            body    = render(body_tpl, contact)
 
-            subject = render(subject_template, contact)
-            body    = render(body_template, contact)
-            msg     = build_message(to_email, subject, body)
+            in_reply_to = contact.get("msg_id", "").strip() or None
+            msg = build_message(to_email, subject, body,
+                                in_reply_to if email_num > 1 else None)
 
             try:
                 smtp.sendmail(FROM_EMAIL, to_email, msg.as_string())
-                contact["sent_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-                sent_emails.add(to_email)
-                sent_count += 1
-                log_lines.append(f"{name} <{to_email}> ({company})")
-                print(f"  SENT  {name:<28} → {to_email}")
+                now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+                contact[f"email{email_num}_sent_at"] = now_str
+                if email_num == 1:
+                    contact["msg_id"] = msg["Message-ID"]
+                sent_emails_this_run.add(to_email)
+                counts[email_num] = counts.get(email_num, 0) + 1
+                log_lines.append(f"E{email_num}  {name} <{to_email}> ({company})")
+                print(f"  SENT E{email_num}  {name:<28} → {to_email}")
             except Exception as e:
-                fail_count += 1
-                print(f"  FAIL  {name:<28} → {to_email}  ({e})")
+                counts["fail"] += 1
+                print(f"  FAIL E{email_num}  {name:<28} → {to_email}  ({e})")
                 continue
 
             if imap is not None:
                 try:
-                    copy_to_sent(imap, sent_folder, msg)     # → appears in Outlook Sent
+                    copy_to_sent(imap, sent_folder, msg)
                 except Exception as e:
                     print(f"        (Sent-folder copy failed: {e})")
 
@@ -313,20 +343,24 @@ def main():
             except Exception:
                 pass
 
-    # Save progress
     save_contacts(contacts)
 
-    # Send summary to Mohsin
-    total_done_now = total_sent + sent_count
+    # Send summary
+    total_progress = {
+        "email1": sum(1 for c in contacts if parse_ts(c.get("email1_sent_at", ""))),
+        "completed": sum(1 for c in contacts if parse_ts(c.get("email3_sent_at", ""))),
+    }
     smtp2 = connect_smtp()
-    send_summary(smtp2, sent_count, fail_count, total_done_now, len(contacts), log_lines)
+    send_summary(smtp2, counts, total_progress, len(contacts), log_lines)
     smtp2.quit()
 
+    sent_total = sum(v for k, v in counts.items() if k != "fail")
     print(f"\n{'─'*55}")
-    print(f"  Sent           : {sent_count}")
-    if fail_count:
-        print(f"  Failed         : {fail_count}")
-    print(f"  Total done     : {total_done_now}/{len(contacts)}")
+    print(f"  Sent this run  : {sent_total}")
+    if counts["fail"]:
+        print(f"  Failed         : {counts['fail']}")
+    print(f"  Reached (E1)   : {total_progress['email1']}/{len(contacts)}")
+    print(f"  Complete (E3)  : {total_progress['completed']}/{len(contacts)}")
     print(f"{'─'*55}\n")
 
 
