@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
 """
-Email Sender — 3-email drip sequence.
+Email Sender — dual-campaign drip sequences.
 
-Each contact receives up to 3 emails:
-  Email 1: Day 0   — short intro
-  Email 2: Day 3+  — follow-up with value prop
-  Email 3: Day 8+  — breakup
+Campaign 1 (OLD): Talent Assessments — 3 emails
+Campaign 2 (MTO): MTO Hiring — 3 emails
 
-Reads contacts.csv, determines who is due for their next email,
-sends a batch via SMTP, copies to IMAP Sent folder, and sends
-a summary to Mohsin after every run.
+Each contact goes through OLD first (if started), then MTO.
+New contacts skip OLD and go straight to MTO.
 
 Triggered hourly by GitHub Actions (via cron-job.org).
 """
@@ -42,7 +39,7 @@ BATCH_SIZE  = int(os.getenv("BATCH_SIZE", "10"))
 DIR           = Path(__file__).parent
 CONTACTS_FILE = DIR / "contacts.csv"
 
-TEMPLATE_FILES = {
+OLD_TEMPLATE_FILES = {
     1: DIR / "email_template_1.txt",
     2: DIR / "email_template_2.txt",
     3: DIR / "email_template_3.txt",
@@ -77,16 +74,9 @@ def _parse_template_files(file_map: dict) -> dict[int, tuple[str, str]]:
 
 
 def load_templates() -> tuple[dict, dict]:
-    old = _parse_template_files(TEMPLATE_FILES)
+    old = _parse_template_files(OLD_TEMPLATE_FILES)
     mto = _parse_template_files(MTO_TEMPLATE_FILES)
     return old, mto
-
-
-def pick_templates(contact, old_templates, mto_templates) -> dict:
-    """Old templates for contacts already in the sequence, MTO for new ones."""
-    if (contact.get("email1_sent_at") or "").strip():
-        return old_templates
-    return mto_templates
 
 
 def render(template: str, contact: dict) -> str:
@@ -117,33 +107,55 @@ def save_contacts(contacts: list[dict]):
 
 
 def parse_ts(s: str):
-    s = s.strip()
+    s = (s or "").strip()
     if not s:
         return None
-    return datetime.strptime(s, "%Y-%m-%d %H:%M UTC").replace(tzinfo=timezone.utc)
+    try:
+        return datetime.strptime(s, "%Y-%m-%d %H:%M UTC").replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
 
 
-def get_next_email(contact) -> int | None:
-    """Return which email (1/2/3) to send next, or None if done or not yet due."""
+def _seq_next(contact, prefix: str) -> int | None:
+    """Check if email 1/2/3 is due for a given sequence prefix ('' or 'mto_')."""
     now = datetime.now(timezone.utc)
-
-    e1 = parse_ts(contact.get("email1_sent_at", ""))
-    e2 = parse_ts(contact.get("email2_sent_at", ""))
-    e3 = parse_ts(contact.get("email3_sent_at", ""))
+    e1 = parse_ts(contact.get(f"{prefix}email1_sent_at", ""))
+    e2 = parse_ts(contact.get(f"{prefix}email2_sent_at", ""))
+    e3 = parse_ts(contact.get(f"{prefix}email3_sent_at", ""))
 
     if not e1:
         return 1
-
     if e3:
         return None
-
     if not e2:
         if (now - e1).total_seconds() >= DELAY_DAYS[2] * 86400:
             return 2
         return None
-
     if (now - e2).total_seconds() >= DELAY_DAYS[3] * 86400:
         return 3
+    return None
+
+
+def get_next_action(contact) -> tuple[str, int] | None:
+    """
+    Return (campaign, email_num) or None.
+
+    Priority:
+      1. Finish OLD sequence if started but incomplete
+      2. MTO sequence (all contacts, after OLD is done or never started)
+    """
+    old_e1 = parse_ts(contact.get("email1_sent_at", ""))
+    old_e3 = parse_ts(contact.get("email3_sent_at", ""))
+
+    if old_e1 and not old_e3:
+        nxt = _seq_next(contact, "")
+        if nxt:
+            return ("OLD", nxt)
+        return None
+
+    mto_nxt = _seq_next(contact, "mto_")
+    if mto_nxt:
+        return ("MTO", mto_nxt)
     return None
 
 
@@ -202,28 +214,28 @@ def copy_to_sent(imap: imaplib.IMAP4_SSL, sent_folder: str, msg: MIMEMultipart):
 
 def send_summary(smtp: smtplib.SMTP, counts: dict, total_progress: dict,
                  total_contacts: int, log_lines: list[str]):
-    e1 = counts.get(1, 0)
-    e2 = counts.get(2, 0)
-    e3 = counts.get(3, 0)
+    old_e3 = counts.get("OLD_3", 0)
+    mto_e1 = counts.get("MTO_1", 0)
+    mto_e2 = counts.get("MTO_2", 0)
+    mto_e3 = counts.get("MTO_3", 0)
     fails = counts.get("fail", 0)
-    sent_total = e1 + e2 + e3
+    sent_total = old_e3 + mto_e1 + mto_e2 + mto_e3
 
-    done_e1  = total_progress["email1"]
-    done_all = total_progress["completed"]
+    subject = f"Campaign update: {sent_total} sent — MTO {total_progress['mto_e1']}/{total_contacts}"
 
-    subject = f"Campaign update: {sent_total} sent — {done_e1}/{total_contacts} reached"
-
-    body = f"""Campaign batch complete — {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}
+    body = f"""Campaign batch — {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}
 
 Batch summary
 ─────────────────────────────
-Email 1 (intro)     : {e1}
-Email 2 (follow-up) : {e2}
-Email 3 (breakup)   : {e3}
-Failed              : {fails}
+OLD  Email 3 (breakup) : {old_e3}
+MTO  Email 1 (intro)   : {mto_e1}
+MTO  Email 2 (follow)  : {mto_e2}
+MTO  Email 3 (breakup) : {mto_e3}
+Failed                 : {fails}
 ─────────────────────────────
-Contacts reached    : {done_e1}/{total_contacts}
-Sequence complete   : {done_all}
+OLD sequence done      : {total_progress['old_done']}/{total_contacts}
+MTO reached (E1)       : {total_progress['mto_e1']}/{total_contacts}
+MTO complete (E3)      : {total_progress['mto_done']}/{total_contacts}
 
 Emails sent this batch:
 """
@@ -233,8 +245,8 @@ Emails sent this batch:
     if fails:
         body += f"\n⚠️  {fails} email(s) failed — check GitHub Actions logs."
 
-    if done_all == total_contacts:
-        body += "\n\n🎉 Campaign complete — all contacts finished the sequence."
+    if total_progress["mto_done"] == total_contacts:
+        body += "\n\n🎉 Both campaigns complete — all contacts finished MTO sequence."
 
     msg = build_message(FROM_EMAIL, subject, body)
     smtp.sendmail(FROM_EMAIL, FROM_EMAIL, msg.as_string())
@@ -253,36 +265,40 @@ def main():
         raise SystemExit("❌  SMTP_LOGIN / SMTP_PASSWORD not set.")
 
     old_templates, mto_templates = load_templates()
-    contacts  = load_contacts()
+    contacts = load_contacts()
 
-    # Find contacts due for their next email
     due = []
     for contact in contacts:
         to_email = (contact.get("email") or "").strip()
         if not to_email:
             continue
-        next_num = get_next_email(contact)
-        if next_num:
-            due.append((contact, next_num))
+        action = get_next_action(contact)
+        if action:
+            campaign, email_num = action
+            due.append((contact, campaign, email_num))
 
-    # Prioritise follow-ups (warmer leads) over new intros
-    due.sort(key=lambda x: (x[1] == 1, x[1]))
+    # Priority: OLD E3 first, then MTO follow-ups (E2/E3), then MTO E1
+    def sort_key(item):
+        _, camp, num = item
+        if camp == "OLD":
+            return (0, num)
+        return (1 if num > 1 else 2, num)
+
+    due.sort(key=sort_key)
     batch = due[: args.batch]
 
-    # Stats
-    e1_done  = sum(1 for c in contacts if parse_ts(c.get("email1_sent_at", "")))
-    all_done = sum(1 for c in contacts if parse_ts(c.get("email3_sent_at", "")))
-    due_e1   = sum(1 for _, n in due if n == 1)
-    due_e2   = sum(1 for _, n in due if n == 2)
-    due_e3   = sum(1 for _, n in due if n == 3)
+    old_pending = sum(1 for _, c, _ in due if c == "OLD")
+    mto_pending = sum(1 for _, c, _ in due if c == "MTO")
+    mto_e1_due  = sum(1 for _, c, n in due if c == "MTO" and n == 1)
+    mto_e2_due  = sum(1 for _, c, n in due if c == "MTO" and n == 2)
+    mto_e3_due  = sum(1 for _, c, n in due if c == "MTO" and n == 3)
 
     print(f"\n{'─'*55}")
-    print(f"  Total contacts    : {len(contacts)}")
-    print(f"  Reached (email 1) : {e1_done}")
-    print(f"  Sequence complete : {all_done}")
-    print(f"  Due now  E1/E2/E3 : {due_e1}/{due_e2}/{due_e3}")
-    print(f"  This batch        : {len(batch)}")
-    print(f"  Dry run           : {args.dry_run}")
+    print(f"  Total contacts      : {len(contacts)}")
+    print(f"  OLD pending (E3)    : {old_pending}")
+    print(f"  MTO due E1/E2/E3    : {mto_e1_due}/{mto_e2_due}/{mto_e3_due}")
+    print(f"  This batch          : {len(batch)}")
+    print(f"  Dry run             : {args.dry_run}")
     print(f"{'─'*55}\n")
 
     if not batch:
@@ -290,18 +306,15 @@ def main():
         return
 
     if args.dry_run:
-        for contact, email_num in batch:
+        for contact, campaign, email_num in batch:
             to_email = (contact.get("email") or "").strip()
             name = f"{contact.get('first_name','')} {contact.get('last_name','')}".strip()
             company = contact.get("company", "") or "unknown"
-            tpl_tag = "OLD" if (contact.get("email1_sent_at") or "").strip() else "MTO"
-            print(f"  DRY  E{email_num}  [{tpl_tag}]  {name:<28} → {to_email}  ({company})")
+            print(f"  DRY  [{campaign}] E{email_num}  {name:<28} → {to_email}  ({company})")
         return
 
-    # Connect SMTP
     smtp = connect_smtp()
 
-    # Connect IMAP (best-effort)
     imap = None
     sent_folder = None
     try:
@@ -318,7 +331,7 @@ def main():
     sent_emails_this_run = set()
 
     try:
-        for contact, email_num in batch:
+        for contact, campaign, email_num in batch:
             to_email = (contact.get("email") or "").strip()
             name     = f"{contact.get('first_name','')} {contact.get('last_name','')}".strip()
             company  = contact.get("company", "") or "unknown"
@@ -326,28 +339,34 @@ def main():
             if to_email in sent_emails_this_run:
                 continue
 
-            templates = pick_templates(contact, old_templates, mto_templates)
+            templates = old_templates if campaign == "OLD" else mto_templates
             subj_tpl, body_tpl = templates[email_num]
             subject = render(subj_tpl, contact)
             body    = render(body_tpl, contact)
 
-            in_reply_to = contact.get("msg_id", "").strip() or None
+            # Pick the right msg_id for threading
+            if campaign == "OLD":
+                prefix = ""
+            else:
+                prefix = "mto_"
+            in_reply_to = contact.get(f"{prefix}msg_id", "").strip() or None
             msg = build_message(to_email, subject, body,
                                 in_reply_to if email_num > 1 else None)
 
             try:
                 smtp.sendmail(FROM_EMAIL, to_email, msg.as_string())
                 now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-                contact[f"email{email_num}_sent_at"] = now_str
+                contact[f"{prefix}email{email_num}_sent_at"] = now_str
                 if email_num == 1:
-                    contact["msg_id"] = msg["Message-ID"]
+                    contact[f"{prefix}msg_id"] = msg["Message-ID"]
                 sent_emails_this_run.add(to_email)
-                counts[email_num] = counts.get(email_num, 0) + 1
-                log_lines.append(f"E{email_num}  {name} <{to_email}> ({company})")
-                print(f"  SENT E{email_num}  {name:<28} → {to_email}")
+                key = f"{campaign}_{email_num}"
+                counts[key] = counts.get(key, 0) + 1
+                log_lines.append(f"[{campaign}] E{email_num}  {name} <{to_email}> ({company})")
+                print(f"  SENT [{campaign}] E{email_num}  {name:<28} → {to_email}")
             except Exception as e:
                 counts["fail"] += 1
-                print(f"  FAIL E{email_num}  {name:<28} → {to_email}  ({e})")
+                print(f"  FAIL [{campaign}] E{email_num}  {name:<28} → {to_email}  ({e})")
                 continue
 
             if imap is not None:
@@ -366,10 +385,10 @@ def main():
 
     save_contacts(contacts)
 
-    # Send summary
     total_progress = {
-        "email1": sum(1 for c in contacts if parse_ts(c.get("email1_sent_at", ""))),
-        "completed": sum(1 for c in contacts if parse_ts(c.get("email3_sent_at", ""))),
+        "old_done": sum(1 for c in contacts if parse_ts(c.get("email3_sent_at", ""))),
+        "mto_e1":   sum(1 for c in contacts if parse_ts(c.get("mto_email1_sent_at", ""))),
+        "mto_done": sum(1 for c in contacts if parse_ts(c.get("mto_email3_sent_at", ""))),
     }
     smtp2 = connect_smtp()
     send_summary(smtp2, counts, total_progress, len(contacts), log_lines)
@@ -377,11 +396,12 @@ def main():
 
     sent_total = sum(v for k, v in counts.items() if k != "fail")
     print(f"\n{'─'*55}")
-    print(f"  Sent this run  : {sent_total}")
+    print(f"  Sent this run     : {sent_total}")
     if counts["fail"]:
-        print(f"  Failed         : {counts['fail']}")
-    print(f"  Reached (E1)   : {total_progress['email1']}/{len(contacts)}")
-    print(f"  Complete (E3)  : {total_progress['completed']}/{len(contacts)}")
+        print(f"  Failed            : {counts['fail']}")
+    print(f"  OLD done          : {total_progress['old_done']}/{len(contacts)}")
+    print(f"  MTO reached (E1)  : {total_progress['mto_e1']}/{len(contacts)}")
+    print(f"  MTO complete (E3) : {total_progress['mto_done']}/{len(contacts)}")
     print(f"{'─'*55}\n")
 
 
