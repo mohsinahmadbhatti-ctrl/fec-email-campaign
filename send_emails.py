@@ -48,14 +48,20 @@ TEMPLATE_FILES = {
     3: DIR / "email_template_3.txt",
 }
 
+MTO_TEMPLATE_FILES = {
+    1: DIR / "mto_email_template_1.txt",
+    2: DIR / "mto_email_template_2.txt",
+    3: DIR / "mto_email_template_3.txt",
+}
+
 DELAY_DAYS = {2: 3, 3: 5}
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def load_templates() -> dict[int, tuple[str, str]]:
+def _parse_template_files(file_map: dict) -> dict[int, tuple[str, str]]:
     templates = {}
-    for num, path in TEMPLATE_FILES.items():
+    for num, path in file_map.items():
         if not path.exists():
             raise FileNotFoundError(f"Template {path} not found")
         text = path.read_text().strip()
@@ -68,6 +74,19 @@ def load_templates() -> dict[int, tuple[str, str]]:
             body = text
         templates[num] = (subject, body)
     return templates
+
+
+def load_templates() -> tuple[dict, dict]:
+    old = _parse_template_files(TEMPLATE_FILES)
+    mto = _parse_template_files(MTO_TEMPLATE_FILES)
+    return old, mto
+
+
+def pick_templates(contact, old_templates, mto_templates) -> dict:
+    """Old templates for contacts already in the sequence, MTO for new ones."""
+    if (contact.get("email1_sent_at") or "").strip():
+        return old_templates
+    return mto_templates
 
 
 def render(template: str, contact: dict) -> str:
@@ -233,7 +252,7 @@ def main():
     if not args.dry_run and not (SMTP_LOGIN and SMTP_PASS):
         raise SystemExit("❌  SMTP_LOGIN / SMTP_PASSWORD not set.")
 
-    templates = load_templates()
+    old_templates, mto_templates = load_templates()
     contacts  = load_contacts()
 
     # Find contacts due for their next email
@@ -275,7 +294,8 @@ def main():
             to_email = (contact.get("email") or "").strip()
             name = f"{contact.get('first_name','')} {contact.get('last_name','')}".strip()
             company = contact.get("company", "") or "unknown"
-            print(f"  DRY  E{email_num}  {name:<28} → {to_email}  ({company})")
+            tpl_tag = "OLD" if (contact.get("email1_sent_at") or "").strip() else "MTO"
+            print(f"  DRY  E{email_num}  [{tpl_tag}]  {name:<28} → {to_email}  ({company})")
         return
 
     # Connect SMTP
@@ -306,6 +326,7 @@ def main():
             if to_email in sent_emails_this_run:
                 continue
 
+            templates = pick_templates(contact, old_templates, mto_templates)
             subj_tpl, body_tpl = templates[email_num]
             subject = render(subj_tpl, contact)
             body    = render(body_tpl, contact)
