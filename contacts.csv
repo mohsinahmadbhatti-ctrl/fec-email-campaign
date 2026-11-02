@@ -1,5 +1,5 @@
 first_name,last_name,email,company,title,email1_sent_at,email2_sent_at,email3_sent_at,msg_id,mto_email1_sent_at,mto_email2_sent_at,mto_email3_sent_at,mto_msg_id
-Mubeen,Saleem,mubeen.saleem@emirates.com,Emirates,Recruitment Manager,2026-09-21 11:00 UTC,2026-10-02 18:00 UTC,2026-10-14 02:00 UTC,,2026-10-25 08:00 UTC,2026-10-28 08:00 UTC,,<179291523807.2324.15897960275291198853@futureedge-consulting.com>
+Mubeen,Saleem,mubeen.saleem@emirates.com,Emirates,Recruitment Manager,2026-09-21 11:00 UTC,2026-10-02 18:00 UTC,2026-10-14 02:00 UTC,,2026-10-25 08:00 UTC,2026-10-28 08:00 UTC,2026-11-02 08:00 UTC,<179291523807.2324.15897960275291198853@futureedge-consulting.com>
 Muhammad,Waqas,mwaqas@osakalighting.com,Osaka Lighting,HR Manager,2026-09-21 11:00 UTC,2026-10-02 18:00 UTC,2026-10-14 02:00 UTC,,2026-10-25 09:00 UTC,2026-10-28 09:00 UTC,,<179291883747.2639.18439507173845300978@futureedge-consulting.com>
 Farhan,Akhtar,farhan.akhtar@gettectonic.com,Tectonic,"Manager, Human Resources",2026-09-21 11:00 UTC,2026-10-02 18:00 UTC,2026-10-14 02:00 UTC,,2026-10-25 09:00 UTC,2026-10-28 09:00 UTC,,<179291883781.2639.14438100987961941719@futureedge-consulting.com>
 Bilal,Azam,bilal.azam@softwarefinder.com,Software Finder,Manager Learning & Development,2026-09-21 11:00 UTC,2026-10-02 18:00 UTC,2026-10-14 02:00 UTC,,2026-10-25 09:00 UTC,2026-10-28 09:00 UTC,,<179291883801.2639.4311136383497993238@futureedge-consulting.com>
@@ -1190,15 +1190,15 @@ Numair,Khalid,numair.khalid@macter.com,Macter International Limited,General Mana
 Khan,Sabih,khan@agico.com.pk,Askari General Insurance Company Limited,Manager (Health Claims & Operationa - South Region ),2026-09-26 10:00 UTC,2026-10-07 18:00 UTC,2026-10-19 01:00 UTC,,2026-11-02 07:00 UTC,,,<179360284420.2347.223376011099663098@futureedge-consulting.com>
 Syeda,Anis,farah.anis@skyelectric.com,SkyElectric Pvt. Ltd,Senior Manager HR,2026-09-26 10:00 UTC,2026-10-07 18:00 UTC,2026-10-19 01:00 UTC,,2026-11-02 07:00 UTC,,,<179360284456.2347.5869867292560096869@futureedge-consulting.com>
 Shoaib,Ahmed,shoaib.ahmed@aspin.com.pk,Aspin Pharma Pvt. Ltd. (An OBS Group Company),Assistant Manager Human Resources,2026-09-26 11:00 UTC,2026-10-07 19:00 UTC,2026-10-19 02:00 UTC,,2026-11-02 07:00 UTC,,,<179360284493.2347.1646543925918100042@futureedge-consulting.com>
-Muhammad,Rafique,muhammad.rafique@almeezangroup.com,Al Meezan Investment Management Limited,Human Resources Manager,2026-09-26 11:00 UTC,2026-10-07 19:00 UTC,2026-10-19 02:00 UTC,,,,,
-Hina,Nawaz,hina.nawaz@ksb.com,KSB Pakistan,Human Resources Manager,2026-09-26 11:00 UTC,2026-10-07 19:00 UTC,2026-10-19 02:00 UTC,,,,,
-Umair,Dar,umair.dar@master.com.pk,Master Group of Industries,Human Resources Manager,2026-09-26 11:00 UTC,2026-10-07 19:00 UTC,2026-10-19 02:00 UTC,,,,,
-Amena,Afzal,amena.afzal@volgapartners.com,Volga Partners,Human Resources Manager,2026-09-26 11:00 UTC,2026-10-07 19:00 UTC,2026-10-19 02:00 UTC,,,,,
-Kashif,Qadeer,kashif@optp.biz,OPTP,Training Manager,2026-09-26 11:00 UTC,2026-10-07 19:00 UTC,2026-10-19 02:00 UTC,,,,,
-Sidra,Afsar,sidra.afsar@pieinthesky.com.pk,Pie in the Sky,Assistant Manager Human Resource,2026-09-26 11:00 UTC,2026-10-07 19:00 UTC,2026-10-19 02:00 UTC,,,,,
-Orangzaib,Khan,orangzaib.khan@master.com.pk,Master Group of Industries,Senior Human Resources Manager,2026-09-26 11:00 UTC,2026-10-07 19:00 UTC,2026-10-19 02:00 UTC,,,,,
-Sidra,Nazim,snazim@lmkr.com,LMKR,Senior Manager HR,2026-09-26 11:00 UTC,2026-10-07 19:00 UTC,2026-10-19 02:00 UTC,,,,,
-Sana,Hanif,sana.hanif@neelablue.com,Neela By Sapphire Fibres,Deputy Manager HR,2026-09-26 11:00 UTC,2026-10-07 19:00 UTC,2026-10-19 02:00 UTC,,,,,
+Muhammad,Rafique,muhammad.rafique@almeezangroup.com,Al Meezan Investment Management Limited,Human Resources Manager,2026-09-26 11:00 UTC,2026-10-07 19:00 UTC,2026-10-19 02:00 UTC,,2026-11-02 08:00 UTC,,,<179360643899.2385.12697811867810589470@futureedge-consulting.com>
+Hina,Nawaz,hina.nawaz@ksb.com,KSB Pakistan,Human Resources Manager,2026-09-26 11:00 UTC,2026-10-07 19:00 UTC,2026-10-19 02:00 UTC,,2026-11-02 08:00 UTC,,,<179360643934.2385.868065132275127916@futureedge-consulting.com>
+Umair,Dar,umair.dar@master.com.pk,Master Group of Industries,Human Resources Manager,2026-09-26 11:00 UTC,2026-10-07 19:00 UTC,2026-10-19 02:00 UTC,,2026-11-02 08:00 UTC,,,<179360643969.2385.1635782626931255035@futureedge-consulting.com>
+Amena,Afzal,amena.afzal@volgapartners.com,Volga Partners,Human Resources Manager,2026-09-26 11:00 UTC,2026-10-07 19:00 UTC,2026-10-19 02:00 UTC,,2026-11-02 08:00 UTC,,,<179360644005.2385.9619793513965932739@futureedge-consulting.com>
+Kashif,Qadeer,kashif@optp.biz,OPTP,Training Manager,2026-09-26 11:00 UTC,2026-10-07 19:00 UTC,2026-10-19 02:00 UTC,,2026-11-02 08:00 UTC,,,<179360644040.2385.1003891113829132017@futureedge-consulting.com>
+Sidra,Afsar,sidra.afsar@pieinthesky.com.pk,Pie in the Sky,Assistant Manager Human Resource,2026-09-26 11:00 UTC,2026-10-07 19:00 UTC,2026-10-19 02:00 UTC,,2026-11-02 08:00 UTC,,,<179360644076.2385.1118073069964484995@futureedge-consulting.com>
+Orangzaib,Khan,orangzaib.khan@master.com.pk,Master Group of Industries,Senior Human Resources Manager,2026-09-26 11:00 UTC,2026-10-07 19:00 UTC,2026-10-19 02:00 UTC,,2026-11-02 08:00 UTC,,,<179360644111.2385.9056843444221645224@futureedge-consulting.com>
+Sidra,Nazim,snazim@lmkr.com,LMKR,Senior Manager HR,2026-09-26 11:00 UTC,2026-10-07 19:00 UTC,2026-10-19 02:00 UTC,,2026-11-02 08:00 UTC,,,<179360644146.2385.5882962001106584212@futureedge-consulting.com>
+Sana,Hanif,sana.hanif@neelablue.com,Neela By Sapphire Fibres,Deputy Manager HR,2026-09-26 11:00 UTC,2026-10-07 19:00 UTC,2026-10-19 02:00 UTC,,2026-11-02 08:00 UTC,,,<179360644182.2385.16440044133316363908@futureedge-consulting.com>
 Salman,Rajpoot,salmanrajpoot@cloud.upwork.com,Upwork,HR Manager,2026-09-26 12:00 UTC,2026-10-07 20:00 UTC,2026-10-19 03:00 UTC,,,,,
 Rehana,Liaqat,rehana.liaqat@schazoo-spl.com,The Schazoo Pharmaceutical Laboratories (Pvt) Ltd.,HR Manager,2026-09-26 12:00 UTC,2026-10-07 20:00 UTC,2026-10-19 03:00 UTC,,,,,
 Aamir,Khan,aamir.khan@master.com.pk,Master Group of Industries,Assistant Manager Human Resources,2026-09-26 12:00 UTC,2026-10-07 20:00 UTC,2026-10-19 03:00 UTC,,,,,
