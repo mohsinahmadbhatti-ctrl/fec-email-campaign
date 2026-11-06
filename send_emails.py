@@ -53,6 +53,9 @@ MTO_TEMPLATE_FILES = {
 
 DELAY_DAYS = {2: 3, 3: 5}
 
+# Halt MTO campaign while Harvard CEO emails are being sent
+MTO_HALTED = True
+
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -153,6 +156,8 @@ def get_next_action(contact) -> tuple[str, int] | None:
             return ("OLD", nxt)
         return None
 
+    if MTO_HALTED:
+        return None
     mto_nxt = _seq_next(contact, "mto_")
     if mto_nxt:
         return ("MTO", mto_nxt)
