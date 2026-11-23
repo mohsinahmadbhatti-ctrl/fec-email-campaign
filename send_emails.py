@@ -54,7 +54,7 @@ MTO_TEMPLATE_FILES = {
 DELAY_DAYS = {2: 3, 3: 5}
 
 # Halt MTO campaign while Harvard CEO emails are being sent
-MTO_HALTED = False
+MTO_HALTED = True
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
